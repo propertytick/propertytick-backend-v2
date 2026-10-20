@@ -7,10 +7,16 @@ const { HTTP_STATUS } = require('../config/constants');
 const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const OTP_LENGTH = 6;
 
+
+const IS_DEMO_MODE = process.env.DEMO_MODE === 'true';
+
 /**
  * Generate cryptographically secure OTP
  */
 const generateOtp = () => {
+  // 👇 YEH NAYI LINE ADD KAREIN
+  if (IS_DEMO_MODE) return '123456'; 
+
   const digits = '0123456789';
   let otp = '';
   const bytes = crypto.randomBytes(OTP_LENGTH);
@@ -26,6 +32,12 @@ const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
  * Send OTP via MSG91 (India)
  */
 const sendOtpSms = async (phone, otp) => {
+  // 👇 YEH NAYA BLOCK ADD KAREIN
+  if (IS_DEMO_MODE) {
+    logger.info(`🧪 [DEMO MODE] OTP for ${phone}: ${otp}`);
+    return { success: true, dev: true };
+  }
+
   if (process.env.NODE_ENV === 'development') {
     logger.info(`🧪 [DEV] OTP for ${phone}: ${otp}`);
     return { success: true, dev: true };

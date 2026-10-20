@@ -29,6 +29,40 @@ const {
   promoteUserSchema,
 } = require('../validators/adminValidator');
 
+const crypto = require('crypto');
+const Superviser = require('../models/Superviser');
+const { sendEmail } = require('../utils/emailService');
+
+// Admin: Approve & Send KYC Link
+router.post('/superviser/send-kyc-link/:id', async (req, res) => {
+  try {
+    const superviser = await Superviser.findById(req.params.id);
+    if (!superviser) return res.status(404).json({ message: "Superviser not found" });
+
+    // Token banayein (5 Din ke liye)
+    const token = crypto.randomBytes(32).toString('hex');
+    superviser.kycToken = token;
+    superviser.kycTokenExpiry = Date.now() + 5 * 24 * 60 * 60 * 1000; // 5 Days
+    superviser.status = 'KYC_Sent';
+    await superviser.save();
+
+    // Link Email par bhejein
+    const kycLink = `https://www.propertytick.com/superviser-kyc?token=${token}`;
+    await sendEmail(
+      superviser.email,
+      "Complete your Superviser KYC - PropertyTick",
+      `<h1>Hello ${superviser.name}</h1>
+       <p>Aapko Superviser appoint kiya gaya hai. Kripya apna KYC complete karein.</p>
+       <p><a href="${kycLink}" style="padding:10px 20px; background:#2563eb; color:white; text-decoration:none; border-radius:5px;">Complete KYC</a></p>
+       <p>Yeh link 5 din tak valid hai.</p>`
+    );
+
+    res.status(200).json({ message: "KYC link sent successfully to " + superviser.email });
+  } catch (error) {
+    res.status(500).json({ message: "Error sending link", error: error.message });
+  }
+});
+
 // All admin routes require authentication + admin role
 router.use(protect, adminOnly);
 
