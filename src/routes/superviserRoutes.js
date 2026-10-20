@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const Superviser = require('../models/Superviser');
+const Superviser = require('../models/Superviser'); // Bada S sahi hai
 const { sendEmail } = require('../utils/emailService');
-// 👇 Sirf naye wale functions import karein
 const { createAndSendOtp, verifyOtp } = require('../utils/otpService'); 
 
 // ==========================================
@@ -16,7 +15,7 @@ router.post('/register', async (req, res) => {
     const existing = await Superviser.findOne({ $or: [{ email }, { mobile }] });
     if (existing) return res.status(400).json({ message: "Email or Mobile already registered." });
 
-    // 👇 Sirf yeh ek line chalegi (jo demo mode check karti hai)
+    // Sirf naya function call karein (Demo mode check karega)
     await createAndSendOtp(mobile, 'registration');
 
     res.status(200).json({ message: "OTP sent to mobile. Please verify." });
@@ -32,14 +31,13 @@ router.post('/verify-and-save', async (req, res) => {
   try {
     const { name, email, mobile, address, city, pinCode, marketingExperience, otp } = req.body;
 
-    // 👇 Naya verifyOtp use karein (jo DEMO_MODE mein 123456 accept karega)
+    // Naya verify function call karein
     const otpDoc = await verifyOtp(mobile, otp, 'registration');
     
     if (!otpDoc) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // Naya Superviser banayein
     const newSuperviser = new Superviser({
       name, email, mobile, address, city, pinCode, marketingExperience,
       status: 'Pending'
@@ -48,13 +46,12 @@ router.post('/verify-and-save', async (req, res) => {
 
     res.status(201).json({ message: "Registration successful. Admin will contact you soon." });
   } catch (error) {
-    // Agar OTP galat hai toh yahan error aayega
     res.status(400).json({ message: error.message || "Invalid or expired OTP" });
   }
 });
 
 // ==========================================
-// 3. KYC PAGE: Token Verify karna (Frontend check ke liye)
+// 3. KYC PAGE: Token Verify karna
 // ==========================================
 router.get('/kyc-verify-token', async (req, res) => {
   try {
@@ -73,7 +70,7 @@ router.get('/kyc-verify-token', async (req, res) => {
 });
 
 // ==========================================
-// 4. KYC SUBMIT (Bank Penny Drop + Save)
+// 4. KYC SUBMIT
 // ==========================================
 router.post('/submit-kyc', async (req, res) => {
   try {
@@ -87,9 +84,7 @@ router.post('/submit-kyc', async (req, res) => {
     if (!superviser) return res.status(400).json({ message: "Invalid or expired link." });
     if (bankAccountNumber !== confirmAccount) return res.status(400).json({ message: "Bank accounts do not match." });
 
-    // Dummy Bank Verification
-    const isBankValid = true; 
-
+    const isBankValid = true; // Dummy verification
     if (!isBankValid) return res.status(400).json({ message: "Bank account verification failed." });
 
     superviser.panNumber = panNumber;
