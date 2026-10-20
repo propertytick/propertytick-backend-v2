@@ -1,4 +1,4 @@
-const logger = require('./logger'); // 1. Path theek kiya (./logger)
+const logger = require('../utils/logger');
 
 // 2. Purani Resend API Key hata di
 
