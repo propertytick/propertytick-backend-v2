@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Superviser = require('../models/Superviser'); 
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
-const { sendWelcomeEmail } = require('../services/emailService'); // ✅ Sahi function import kiya
+const { sendWelcomeEmail, sendViaBrevo } = require('../services/emailService'); // ✅ Sahi function import kiya
 
 // ==========================================
 // 1. PUBLIC FORM: Become a Partner (Superviser)
@@ -47,11 +47,26 @@ router.post('/verify-and-save', async (req, res) => {
     await newSuperviser.save();
 
     // ✅ Aapko (Admin ko) Email notification bhejein
+       // ✅ Aapko (Admin ko) Email notification bhejein
     try {
-      await sendWelcomeEmail(
-        'info.propertytick@gmail.com', // 👈 Aapka Email (Yahan aayegi mail)
-        name,
-        'Superviser'
+      // EmailService se sendViaBrevo import karein (agar pehle se nahi hai)
+            
+      const htmlMessage = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#ffffff;">
+          <h1 style="color:#2563eb;">Welcome to PropertyTick! 🎉</h1>
+          <p>Hi ${name},</p>
+          <p>Thank you for applying to become a <strong>Superviser</strong> with PropertyTick.</p>
+          <p>Our team will review your profile and contact you shortly for KYC and further steps.</p>
+          <a href="${process.env.CLIENT_URL || 'https://www.propertytick.com'}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:16px;">Open Dashboard</a>
+        </div>
+      `;
+
+      // 👇 Direct Brevo API se email bhej rahe hain
+      await sendViaBrevo(
+        'info.propertytick@gmail.com', 
+        `New Superviser Registered: ${name}`, 
+        htmlMessage, 
+        `New Superviser Registered: ${name}`
       );
     } catch (emailError) {
       console.error("Admin notification email failed:", emailError.message);
