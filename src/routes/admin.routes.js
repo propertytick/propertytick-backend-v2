@@ -31,7 +31,7 @@ const {
 
 const crypto = require('crypto');
 const Superviser = require('../models/Superviser');
-const { sendEmail } = require('../utils/emailService');
+const { sendEmail } = require('../services/emailService');
 
 // Admin: Approve & Send KYC Link
 router.post('/superviser/send-kyc-link/:id', async (req, res) => {
