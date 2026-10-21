@@ -7,7 +7,6 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 
-
 const routes = require('./routes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { globalLimiter } = require('./middlewares/rateLimiter');
@@ -19,14 +18,11 @@ app.set('trust proxy', 1);
 
 const path = require('path');
 
-// ---- Security headers ----
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: false,
 }));
 
-// ---- CORS ----
-// ---- CORS ----
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:3000',
@@ -48,22 +44,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
-// ---- Body parsers ----
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-
-// ---- Sanitization ----
 app.use(mongoSanitize());
-// xss-clean disabled — was corrupting camelCase query params like listingPurpose
-// app.use(xss());
-// hpp() disabled — was dropping single query params
-// app.use(hpp());
-
-// ---- Compression ----
 app.use(compression());
 
-// ---- HTTP logger ----
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 } else {
@@ -72,13 +58,13 @@ if (process.env.NODE_ENV === 'development') {
   }));
 }
 
-// ---- Rate limiting ----
 app.use('/api', globalLimiter);
 
 // ---- Routes ----
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 const superviserRoutes = require('./routes/superviserRoutes');
 app.use(`/superviser`, superviserRoutes);
+
 // ---- Root ----
 app.get('/', (req, res) => {
   res.json({
@@ -88,7 +74,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// ---- 404 & Error handlers ----
 app.use(notFound);
 app.use(errorHandler);
 

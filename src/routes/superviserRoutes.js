@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Superviser = require('../models/Superviser'); // 
+const Superviser = require('../models/Superviser'); // Bada S sahi hai
 const { createAndSendOtp, verifyOtp } = require('../utils/otpService'); 
 
-// ==========================================
-// 1. PUBLIC FORM: Become a Partner (Superviser)
-// ==========================================
+// 1. PUBLIC FORM
 router.post('/register', async (req, res) => {
   try {
     const { name, email, mobile, address, city, pinCode, marketingExperience } = req.body;
@@ -13,7 +11,6 @@ router.post('/register', async (req, res) => {
     const existing = await Superviser.findOne({ $or: [{ email }, { mobile }] });
     if (existing) return res.status(400).json({ message: "Email or Mobile already registered." });
 
-    // Sirf naya function call karein (Demo mode check karega)
     await createAndSendOtp(mobile, 'registration');
 
     res.status(200).json({ message: "OTP sent to mobile. Please verify." });
@@ -22,14 +19,11 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// ==========================================
 // 2. VERIFY OTP & SAVE DATA
-// ==========================================
 router.post('/verify-and-save', async (req, res) => {
   try {
     const { name, email, mobile, address, city, pinCode, marketingExperience, otp } = req.body;
 
-    // Naya verify function call karein
     const otpDoc = await verifyOtp(mobile, otp, 'registration');
     
     if (!otpDoc) {
@@ -48,9 +42,7 @@ router.post('/verify-and-save', async (req, res) => {
   }
 });
 
-// ==========================================
-// 3. KYC PAGE: Token Verify karna
-// ==========================================
+// 3. KYC PAGE
 router.get('/kyc-verify-token', async (req, res) => {
   try {
     const { token } = req.query;
@@ -67,9 +59,7 @@ router.get('/kyc-verify-token', async (req, res) => {
   }
 });
 
-// ==========================================
 // 4. KYC SUBMIT
-// ==========================================
 router.post('/submit-kyc', async (req, res) => {
   try {
     const { token, panNumber, aadhaarNumber, bankAccountNumber, confirmAccount, ifscCode } = req.body;
@@ -82,7 +72,7 @@ router.post('/submit-kyc', async (req, res) => {
     if (!superviser) return res.status(400).json({ message: "Invalid or expired link." });
     if (bankAccountNumber !== confirmAccount) return res.status(400).json({ message: "Bank accounts do not match." });
 
-    const isBankValid = true; // Dummy verification
+    const isBankValid = true;
     if (!isBankValid) return res.status(400).json({ message: "Bank account verification failed." });
 
     superviser.panNumber = panNumber;

@@ -4,19 +4,14 @@ const Otp = require('../models/Otp');
 const logger = require('../utils/logger');
 const { HTTP_STATUS } = require('../config/constants');
 
-const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const OTP_TTL_MS = 5 * 60 * 1000; 
 const OTP_LENGTH = 6;
 
-
+// 👇 YEH DEMO MODE HAI. JAB ASLI SMS LAGANA HO ISKO 'false' KAR DEIN
 const IS_DEMO_MODE = process.env.DEMO_MODE === 'true';
 
-/**
- * Generate cryptographically secure OTP
- */
 const generateOtp = () => {
-  // 👇 YEH NAYI LINE ADD KAREIN
-  if (IS_DEMO_MODE) return '123456'; 
-
+  if (IS_DEMO_MODE) return '123456';
   const digits = '0123456789';
   let otp = '';
   const bytes = crypto.randomBytes(OTP_LENGTH);
@@ -28,11 +23,7 @@ const generateOtp = () => {
 
 const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 
-/**
- * Send OTP via MSG91 (India)
- */
 const sendOtpSms = async (phone, otp) => {
-  // 👇 YEH NAYA BLOCK ADD KAREIN
   if (IS_DEMO_MODE) {
     logger.info(`🧪 [DEMO MODE] OTP for ${phone}: ${otp}`);
     return { success: true, dev: true };
@@ -66,11 +57,7 @@ const sendOtpSms = async (phone, otp) => {
   }
 };
 
-/**
- * Create and send OTP
- */
 const createAndSendOtp = async (phone, purpose = 'login', meta = {}) => {
-  // Rate limit: max 5 OTPs per 15 min
   const recentCount = await Otp.countDocuments({
     phone,
     createdAt: { $gte: new Date(Date.now() - 15 * 60 * 1000) },
@@ -81,7 +68,6 @@ const createAndSendOtp = async (phone, purpose = 'login', meta = {}) => {
     throw error;
   }
 
-  // Invalidate previous unused OTPs for same phone+purpose
   await Otp.updateMany({ phone, purpose, isUsed: false }, { isUsed: true });
 
   const otp = generateOtp();
@@ -100,9 +86,6 @@ const createAndSendOtp = async (phone, purpose = 'login', meta = {}) => {
   return { success: true, expiresIn: OTP_TTL_MS / 1000 };
 };
 
-/**
- * Verify OTP — returns the OTP doc if valid
- */
 const verifyOtp = async (phone, otp, purpose) => {
   const doc = await Otp.findOne({
     phone,

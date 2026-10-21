@@ -30,7 +30,7 @@ const {
 } = require('../validators/adminValidator');
 
 const crypto = require('crypto');
-const Superviser = require('../models/Superviser');
+
 const { sendEmail } = require('../utils/emailService');
 
 // Admin: Approve & Send KYC Link
