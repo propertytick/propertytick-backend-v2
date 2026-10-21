@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Superviser = require('../models/Superviser'); 
-const { createAndSendOtp, verifyOtp } = require('../utils/otpService'); 
+const { createAndSendOtp, verifyOtp } = require('../services/otpService');
 
 // ==========================================
 // 1. PUBLIC FORM: Become a Partner (Superviser)
