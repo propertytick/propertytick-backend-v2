@@ -6,8 +6,11 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
+const path = require('path');
 
 const routes = require('./routes');
+const adminRoutes = require('./routes/admin.routes');
+const superviserRoutes = require('./routes/superviserRoutes');
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { globalLimiter } = require('./middlewares/rateLimiter');
 const logger = require('./utils/logger');
@@ -16,13 +19,13 @@ const app = express();
 app.set('query parser', 'extended');
 app.set('trust proxy', 1);
 
-const path = require('path');
-
+// 1. Security Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: false,
 }));
 
+// 2. CORS Setup
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:3000',
@@ -31,8 +34,6 @@ const allowedOrigins = [
   'https://propertytick.com',
   'https://propertytick-frontend.vercel.app' 
 ].filter(Boolean);
-
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -44,12 +45,14 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
+// 3. Body Parsers & Sanitization
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(compression());
 
+// 4. Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 } else {
@@ -58,14 +61,20 @@ if (process.env.NODE_ENV === 'development') {
   }));
 }
 
+// 5. Static Folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// 6. Rate Limiter
 app.use('/api', globalLimiter);
 
-// ---- Routes ----
+// ==========================================
+// 7. ROUTES (Yahan sahi se mount kiya gaya hai)
+// ==========================================
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
-const superviserRoutes = require('./routes/superviserRoutes');
+app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes); 
 app.use(`/superviser`, superviserRoutes);
 
-// ---- Root ----
+// 8. Root Route
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -74,6 +83,7 @@ app.get('/', (req, res) => {
   });
 });
 
+// 9. Error Handlers (Hamesha sabse neeche)
 app.use(notFound);
 app.use(errorHandler);
 
