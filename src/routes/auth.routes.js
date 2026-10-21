@@ -83,4 +83,41 @@ router.patch('/profile', protect, audit('profile_update', 'User'), updateProfile
 // ---- Public Profile (Digital Visiting Card) ----
 router.get('/profile/:slug', getProfileBySlug);
 
+const { createAndSendOtp, verifyOtp } = require('../services/otpService');
+
+// 1. Send Mobile OTP
+router.post('/send-mobile-otp', async (req, res) => {
+  try {
+    const { phone, fullName, email, userId, password, pincode, referralCode } = req.body;
+    
+    await createAndSendOtp(phone, 'registration', { fullName, email, userId, password, pincode, referralCode });
+    
+    res.status(200).json({ success: true, message: "OTP sent to mobile" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 2. Verify Mobile OTP
+router.post('/verify-mobile-otp', async (req, res) => {
+  try {
+    const { phone, otp, role } = req.body;
+    
+    // Verify OTP
+    const otpDoc = await verifyOtp(phone, otp, 'registration');
+    if (!otpDoc) return res.status(400).json({ success: false, message: "Invalid OTP" });
+
+    // ✅ OTP Verify hone ke baad, data nikaalein
+    const metaData = otpDoc.meta; 
+    // Yahan aapko user ko database mein save karna hoga. 
+    // Ya phir frontend ko token bhej kar Step 4 (Professional Info) par bhejna hoga.
+
+    // Agar aap Step 4 (Professional Info) par bhejna chahte hain, toh bas success bhej dein:
+    res.status(200).json({ success: true, message: "OTP verified", user: metaData });
+    
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;

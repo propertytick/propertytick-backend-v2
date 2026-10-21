@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Superviser = require('../models/Superviser'); 
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
-const { sendEmail } = require('../services/emailService');
+const { sendWelcomeEmail } = require('../services/emailService'); // ✅ Sahi function import kiya
 
 // ==========================================
 // 1. PUBLIC FORM: Become a Partner (Superviser)
@@ -14,7 +14,7 @@ router.post('/register', async (req, res) => {
     const existing = await Superviser.findOne({ $or: [{ email }, { mobile }] });
     if (existing) return res.status(400).json({ message: "Email or Mobile already registered." });
 
-    // OTP generate aur send karein
+    // ✅ Mobile par Demo OTP (123456) bhej rahe hain
     await createAndSendOtp(mobile, 'registration', { 
       name, email, address, city, pinCode, marketingExperience 
     });
@@ -32,7 +32,7 @@ router.post('/verify-and-save', async (req, res) => {
   try {
     const { name, email, mobile, address, city, pinCode, marketingExperience, otp } = req.body;
 
-    // OTP verify karein
+    // ✅ Mobile OTP verify kar rahe hain
     const otpDoc = await verifyOtp(mobile, otp, 'registration');
     
     if (!otpDoc) {
@@ -46,18 +46,12 @@ router.post('/verify-and-save', async (req, res) => {
     });
     await newSuperviser.save();
 
-    // ✅ Ab Admin ko Email bhejein (Database save hone ke baad)
+    // ✅ Aapko (Admin ko) Email notification bhejein
     try {
-      await sendEmail(
-        process.env.EMAIL_USER, 
-        "New Partner Registration - PropertyTick",
-        `<h2>New Superviser Registered</h2>
-         <p><strong>Name:</strong> ${name}</p>
-         <p><strong>Email:</strong> ${email}</p>
-         <p><strong>Mobile:</strong> ${mobile}</p>
-         <p><strong>City:</strong> ${city}</p>
-         <p><strong>Experience:</strong> ${marketingExperience} years</p>
-         <p>Please check the admin panel to approve or send KYC link.</p>`
+      await sendWelcomeEmail(
+        'info.propertytick@gmail.com', // 👈 Aapka Email (Yahan aayegi mail)
+        name,
+        'Superviser'
       );
     } catch (emailError) {
       console.error("Admin notification email failed:", emailError.message);
@@ -102,9 +96,6 @@ router.post('/submit-kyc', async (req, res) => {
 
     if (!superviser) return res.status(400).json({ message: "Invalid or expired link." });
     if (bankAccountNumber !== confirmAccount) return res.status(400).json({ message: "Bank accounts do not match." });
-
-    const isBankValid = true; // Dummy verification
-    if (!isBankValid) return res.status(400).json({ message: "Bank account verification failed." });
 
     superviser.panNumber = panNumber;
     superviser.aadhaarNumber = aadhaarNumber;
