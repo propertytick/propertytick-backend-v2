@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Superviser = require('../models/Superviser'); 
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
+const { sendEmail } = require('../services/emailService');
 
 // ==========================================
 // 1. PUBLIC FORM: Become a Partner (Superviser)
@@ -13,10 +14,10 @@ router.post('/register', async (req, res) => {
     const existing = await Superviser.findOne({ $or: [{ email }, { mobile }] });
     if (existing) return res.status(400).json({ message: "Email or Mobile already registered." });
 
-    // Sirf naya function call karein (Demo mode check karega)
+    // OTP generate aur send karein
     await createAndSendOtp(mobile, 'registration', { 
-  name, email, address, city, pinCode, marketingExperience 
-});
+      name, email, address, city, pinCode, marketingExperience 
+    });
 
     res.status(200).json({ message: "OTP sent to mobile. Please verify." });
   } catch (error) {
@@ -31,18 +32,36 @@ router.post('/verify-and-save', async (req, res) => {
   try {
     const { name, email, mobile, address, city, pinCode, marketingExperience, otp } = req.body;
 
-    // Naya verify function call karein
+    // OTP verify karein
     const otpDoc = await verifyOtp(mobile, otp, 'registration');
     
     if (!otpDoc) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
+    // Database mein save karein
     const newSuperviser = new Superviser({
       name, email, mobile, address, city, pinCode, marketingExperience,
       status: 'Pending'
     });
     await newSuperviser.save();
+
+    // ✅ Ab Admin ko Email bhejein (Database save hone ke baad)
+    try {
+      await sendEmail(
+        process.env.EMAIL_USER, 
+        "New Partner Registration - PropertyTick",
+        `<h2>New Superviser Registered</h2>
+         <p><strong>Name:</strong> ${name}</p>
+         <p><strong>Email:</strong> ${email}</p>
+         <p><strong>Mobile:</strong> ${mobile}</p>
+         <p><strong>City:</strong> ${city}</p>
+         <p><strong>Experience:</strong> ${marketingExperience} years</p>
+         <p>Please check the admin panel to approve or send KYC link.</p>`
+      );
+    } catch (emailError) {
+      console.error("Admin notification email failed:", emailError.message);
+    }
 
     res.status(201).json({ message: "Registration successful. Admin will contact you soon." });
   } catch (error) {
