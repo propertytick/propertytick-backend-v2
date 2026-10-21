@@ -78,7 +78,7 @@ app.use('/api', globalLimiter);
 // ---- Routes ----
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 const superviserRoutes = require('./routes/superviserRoutes');
-app.use(`/api/${process.env.API_VERSION || 'v1'}/superviser`, superviserRoutes);
+app.use(`/superviser`, superviserRoutes);
 // ---- Root ----
 app.get('/', (req, res) => {
   res.json({

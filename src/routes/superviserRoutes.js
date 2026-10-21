@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
-const Superviser = require('../models/Superviser'); // Bada S sahi hai
-const { sendEmail } = require('../utils/emailService');
+const Superviser = require('../models/Superviser'); // 
 const { createAndSendOtp, verifyOtp } = require('../utils/otpService'); 
 
 // ==========================================
