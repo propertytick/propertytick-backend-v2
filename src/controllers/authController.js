@@ -925,12 +925,13 @@ const getProfessionals = async (req, res, next) => {
 };
 
 // ==================== COMPLETE REGISTRATION (Step 4) ====================
+// ==================== COMPLETE REGISTRATION (Step 4) ====================
 const completeRegistration = async (req, res, next, isDirectRegistration = false) => {
   try {
     const body = req.body;
 
     const {
-      email, otp, role,
+      otp, role,
       referralCode: clientReferralCode,
       professionalInfo = {},
       agencyName,
@@ -944,33 +945,53 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
       landmark,
     } = body;
 
-    if (!email || !role) {
-      return ApiResponse.error(res, 'Email and role are required', HTTP_STATUS.BAD_REQUEST);
+    if (!otp || !role) {
+      return ApiResponse.error(res, 'OTP and role are required', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // ✅ OTP DHUNDHO
+    // ✅ Mobile OTP DHUNDHO (Email ki jagah Phone se)
     const Otp = require('../models/Otp');
+    
+    // OTP ko dhoondhne ke liye humein phone chahiye, jo OTP document ke meta mein hai.
+    // Lekin hum direct phone se bhi verify kar sakte hain agar frontend se phone aaya ho.
+    // Abhi hum OTP model se latest verified OTP dhoondhte hain.
+    
+    // ⚠️ IMPORTANT: Frontend se phone bhejna zaroori hai (jo humne page.jsx mein kiya hai)
+    const { phone } = body; // Frontend se phone aa raha hai
+    
+    if (!phone) {
+        return ApiResponse.error(res, 'Phone number is required', HTTP_STATUS.BAD_REQUEST);
+    }
+
     const otpDoc = await Otp.findOne({
-      phone: `email:${email}`,
+      phone: phone, // 👈 Mobile number se dhoondh rahe hain
       purpose: 'registration',
       isUsed: false,
-      verifiedAt: { $ne: null },
-    });
+      // verifiedAt: { $ne: null }, // Comment out kiya kyunki abhi verify route alag hai
+    }).sort({ createdAt: -1 });
 
     if (!otpDoc) {
-      return ApiResponse.error(res, 'OTP not verified. Please verify again.', HTTP_STATUS.BAD_REQUEST);
+      return ApiResponse.error(res, 'OTP not verified or expired. Please verify again.', HTTP_STATUS.BAD_REQUEST);
     }
 
+    // OTP verify karo (agar frontend se aaya hai)
+    const crypto = require('crypto');
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+    
+    if (hashedOtp !== otpDoc.otpHash) {
+       return ApiResponse.error(res, 'Invalid OTP', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    // Meta data nikaalo (jo OTP bhejte waqt save kiya tha)
     const meta = otpDoc.meta || {};
-    const { fullName, phone, userId, password, pincode, referralCode: metaReferralCode } = meta;
+    const { fullName, email, userId, password, pincode, referralCode: metaReferralCode } = meta;
     const finalReferralCode = clientReferralCode || metaReferralCode;
 
-    if (!fullName || !phone || !userId || !password) {
-      return ApiResponse.error(res, 'Registration data missing', HTTP_STATUS.BAD_REQUEST);
+    if (!fullName || !email || !userId || !password) {
+      return ApiResponse.error(res, 'Registration data missing in OTP record', HTTP_STATUS.BAD_REQUEST);
     }
 
     // ✅ Duplicate check
-       // ✅ Duplicate check — partial user auto-delete
     const existingUser = await User.findOne({
       deletedAt: null,
       isActive: true,
@@ -982,9 +1003,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
     });
 
     if (existingUser) {
-      // 🔍 Check karo user COMPLETE hai ya PARTIAL
       let isComplete = true;
-
       if (existingUser.role === USER_ROLES.BROKER) {
         const broker = await Broker.findOne({ user: existingUser._id });
         if (!broker) isComplete = false;
@@ -997,16 +1016,14 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
       }
 
       if (!isComplete) {
-        // 🗑️ Partial user hai — delete karo, aage badho
         console.log('🗑️ Auto-deleting partial user in completeRegistration:', existingUser.email);
         await User.findByIdAndDelete(existingUser._id);
       } else {
-        // ✅ Complete user hai — login karne bolo
         return ApiResponse.error(res, 'User already exists. Please login.', HTTP_STATUS.CONFLICT);
       }
     }
 
-    // 👇 User create karo — try-catch ke saath
+    // 👇 User create karo
     let user;
     try {
       user = await User.create({
@@ -1018,6 +1035,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
         role,
         profileSlug: buildSlug(fullName, phone),
         isEmailVerified: true,
+        isPhoneVerified: true, // Mobile se verify hua hai
         location: pincode ? { pincode } : undefined,
       });
     } catch (err) {
@@ -1034,7 +1052,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
       }
     }
 
-    // 👇 Role-specific data create karo — try-catch ke saath
+    // 👇 Role-specific data create karo
     let roleData = null;
     try {
       if (role === USER_ROLES.BROKER) {
@@ -1052,7 +1070,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
           courtName: courtName || professionalInfo?.courtName || '',
           services: ['legal_verification'],
         });
-            } else if (role === USER_ROLES.COLONIZER) {
+      } else if (role === USER_ROLES.COLONIZER) {
         roleData = await Colonizer.create({
           user: user._id,
           projectName: projectName || professionalInfo?.projectName || `${fullName}'s Project`,
@@ -1065,8 +1083,6 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
         roleData = null;
       }
     } catch (err) {
-      
-      // ❌ ROLLBACK — user delete karo agar role data fail hua
       console.error('❌ Role data creation FAILED:', err.message, err.errors);
       await User.findByIdAndDelete(user._id);
       return ApiResponse.error(
@@ -1076,7 +1092,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
       );
     }
 
-    // 👇 YEH ADD KARO — Registration successfully complete mark karo
+    // 👇 Registration successfully complete mark karo
     user.isRegistrationComplete = true;
     await user.save();
 
