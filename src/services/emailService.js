@@ -3,10 +3,10 @@ const logger = require('../utils/logger');
 // 2. Purani Resend API Key hata di
 
 // ==================== BREVO API SENDER ====================
+// ==================== BREVO API SENDER ====================
 const sendViaBrevo = async (toEmail, subject, htmlContent, textContent) => {
   const apiKey = process.env.BREVO_API_KEY;
   
-  // 3. Sender email ko naye domain par set kiya
   const senderEmail = process.env.EMAIL_FROM || 'info@propertytick.com'; 
   const senderName = process.env.EMAIL_FROM_NAME || 'PropertyTick';
   
@@ -40,6 +40,7 @@ const sendViaBrevo = async (toEmail, subject, htmlContent, textContent) => {
     logger.info(`📧 Email sent to ${toEmail}: ${data.messageId}`);
     return { success: true, messageId: data.messageId };
   } catch (err) {
+    console.error("❌ BREVO ASLI ERROR:", err.message); // 👈 Yeh line add ki hai
     logger.error(`Email send failed to ${toEmail}: ${err.message}`);
     throw new Error('Failed to send email. Please try again.');
   }
