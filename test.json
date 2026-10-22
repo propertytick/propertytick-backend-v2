@@ -1,0 +1,6 @@
+{
+  "sender": { "name": "PropertyTick", "email": "info@propertytick.com" },
+  "to": [{ "email": "info.propertytick@gmail.com" }],
+  "subject": "Test Email",
+  "htmlContent": "<h1>Test</h1>"
+}
