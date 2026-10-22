@@ -1095,8 +1095,14 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
     otpDoc.isUsed = true;
     await otpDoc.save();
 
-    sendWelcomeEmail(email, fullName, role).catch((err) => logger.error(err.message));
-	    // ✅ Company (Admin) ko notification bhejein
+    try {
+  await sendWelcomeEmail(email, fullName, role);
+  console.log("WELCOME EMAIL SENT");
+} catch (err) {
+  console.error("Welcome email failed:", err.message);
+}
+	    
+		console.log("SENDING COMPANY EMAIL FOR:", email, phone, role);
     try {
       await sendViaBrevo(
         'info.propertytick@gmail.com', // 👈 Company ki email
