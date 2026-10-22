@@ -99,6 +99,7 @@ router.post('/send-mobile-otp', async (req, res) => {
 });
 
 // 2. Verify Mobile OTP
+// 2. Verify Mobile OTP
 router.post('/verify-mobile-otp', async (req, res) => {
   try {
     const { phone, otp, role } = req.body;
@@ -107,12 +108,15 @@ router.post('/verify-mobile-otp', async (req, res) => {
     const otpDoc = await verifyOtp(phone, otp, 'registration');
     if (!otpDoc) return res.status(400).json({ success: false, message: "Invalid OTP" });
 
-    // ✅ OTP Verify hone ke baad, data nikaalein
-    const metaData = otpDoc.meta; 
-    // Yahan aapko user ko database mein save karna hoga. 
-    // Ya phir frontend ko token bhej kar Step 4 (Professional Info) par bhejna hoga.
+    // ✅ OTP VERIFIED — Ab isko mark karein
+    otpDoc.verifiedAt = new Date();
+    otpDoc.isUsed = false; // Step 4 ke liye false rakhein
+    otpDoc.expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 min extend
+    await otpDoc.save();
 
-    // Agar aap Step 4 (Professional Info) par bhejna chahte hain, toh bas success bhej dein:
+    // Meta data nikaalein
+    const metaData = otpDoc.meta; 
+
     res.status(200).json({ success: true, message: "OTP verified", user: metaData });
     
   } catch (error) {

@@ -949,32 +949,26 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
       return ApiResponse.error(res, 'OTP and role are required', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // ✅ Mobile OTP DHUNDHO (Email ki jagah Phone se)
+    // ✅ Sirf ek baar OTP dhoondho
     const Otp = require('../models/Otp');
-    
-    // OTP ko dhoondhne ke liye humein phone chahiye, jo OTP document ke meta mein hai.
-    // Lekin hum direct phone se bhi verify kar sakte hain agar frontend se phone aaya ho.
-    // Abhi hum OTP model se latest verified OTP dhoondhte hain.
-    
-    // ⚠️ IMPORTANT: Frontend se phone bhejna zaroori hai (jo humne page.jsx mein kiya hai)
-    const { phone } = body; // Frontend se phone aa raha hai
-    
+    const { phone } = body;
+
     if (!phone) {
         return ApiResponse.error(res, 'Phone number is required', HTTP_STATUS.BAD_REQUEST);
     }
 
+    // ✅ verifiedAt check karein, isUsed check na karein
     const otpDoc = await Otp.findOne({
-      phone: phone, // 👈 Mobile number se dhoondh rahe hain
+      phone: phone,
       purpose: 'registration',
-      isUsed: false,
-      // verifiedAt: { $ne: null }, // Comment out kiya kyunki abhi verify route alag hai
+      verifiedAt: { $ne: null },
     }).sort({ createdAt: -1 });
 
     if (!otpDoc) {
       return ApiResponse.error(res, 'OTP not verified or expired. Please verify again.', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // OTP verify karo (agar frontend se aaya hai)
+    // OTP verify karo (hash compare)
     const crypto = require('crypto');
     const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
     
@@ -982,7 +976,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
        return ApiResponse.error(res, 'Invalid OTP', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // Meta data nikaalo (jo OTP bhejte waqt save kiya tha)
+    // Meta data nikaalo
     const meta = otpDoc.meta || {};
     const { fullName, email, userId, password, pincode, referralCode: metaReferralCode } = meta;
     const finalReferralCode = clientReferralCode || metaReferralCode;
@@ -990,6 +984,7 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
     if (!fullName || !email || !userId || !password) {
       return ApiResponse.error(res, 'Registration data missing in OTP record', HTTP_STATUS.BAD_REQUEST);
     }
+    
 
     // ✅ Duplicate check
     const existingUser = await User.findOne({
