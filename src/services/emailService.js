@@ -46,18 +46,14 @@ const sendViaBrevo = async (toEmail, subject, htmlContent, textContent) => {
 };
 
 // ==================== COMMON HEADER & FOOTER ====================
-const emailHeader = (icon, title, subtitle) => `
+const emailHeader = (icon, title, subtitle) => `  // 👈 title parameter add karein
   <tr>
     <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 40px;text-align:center;">
-      <div style="display:inline-block;width:56px;height:56px;background:rgba(255,255,255,0.2);border-radius:14px;line-height:56px;text-align:center;margin-bottom:12px;">
-        <span style="font-size:28px;">${icon}</span>
-      </div>
+      <!-- ... -->
       <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">
-        Property<span style="color:#93c5fd;">Tick</span>
+        ${title || 'PropertyTick'} <!-- 👈 title use karein -->
       </h1>
-      <p style="margin:6px 0 0;color:#bfdbfe;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">
-        ${subtitle || "India's Trusted Property Platform"}
-      </p>
+      <!-- ... -->
     </td>
   </tr>
 `;
@@ -273,4 +269,5 @@ module.exports = {
   sendPasswordResetEmail,
   sendUserIdEmail,
   sendWelcomeEmail,
-};
+  sendViaBrevo, 
+};};
