@@ -1104,16 +1104,17 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
 	    
 		console.log("SENDING COMPANY EMAIL FOR:", email, phone, role);
     try {
-      await sendViaBrevo(
-        'info.propertytick@gmail.com', // 👈 Company ki email
-        `New User Registered: ${fullName} (${role})`,
-        `<h2>New User Registered</h2>
-         <p><strong>Name:</strong> ${fullName}</p>
-         <p><strong>Email:</strong> ${email}</p>
-         <p><strong>Phone:</strong> ${phone}</p>
-         <p><strong>Role:</strong> ${role}</p>
-         <p><strong>User ID:</strong> ${userId}</p>`
-      );
+          await sendViaBrevo(
+      'info.propertytick@gmail.com', // Company ki email
+      `New User Registered: ${fullName} (${role})`,
+      `<h2>New User Registered</h2>
+       <p><strong>Name:</strong> ${fullName}</p>
+       <p><strong>Email:</strong> ${email}</p>
+       <p><strong>Phone:</strong> ${phone}</p>
+       <p><strong>Role:</strong> ${role}</p>
+       <p><strong>User ID:</strong> ${userId}</p>`,
+      `New User Registered: ${fullName} (${role})` // 
+    );
     } catch (emailError) {
       console.error("Admin notification email failed:", emailError.message);
     }
