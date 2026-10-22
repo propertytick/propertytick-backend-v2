@@ -7,7 +7,7 @@ const Colonizer = require('../models/Colonizer');
 const ApiResponse = require('../utils/apiResponse');
 const logger = require('../utils/logger');
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
-const { sendOtpEmail, sendWelcomeEmail } = require('../services/emailService');
+const { sendOtpEmail, sendWelcomeEmail, sendViaBrevo } = require('../services/emailService');
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -1096,6 +1096,21 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
     await otpDoc.save();
 
     sendWelcomeEmail(email, fullName, role).catch((err) => logger.error(err.message));
+	    // ✅ Company (Admin) ko notification bhejein
+    try {
+      await sendViaBrevo(
+        'info.propertytick@gmail.com', // 👈 Company ki email
+        `New User Registered: ${fullName} (${role})`,
+        `<h2>New User Registered</h2>
+         <p><strong>Name:</strong> ${fullName}</p>
+         <p><strong>Email:</strong> ${email}</p>
+         <p><strong>Phone:</strong> ${phone}</p>
+         <p><strong>Role:</strong> ${role}</p>
+         <p><strong>User ID:</strong> ${userId}</p>`
+      );
+    } catch (emailError) {
+      console.error("Admin notification email failed:", emailError.message);
+    }
 
     const payload = { id: user._id, role: user.role };
     const accessToken = generateAccessToken(payload);
