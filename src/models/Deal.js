@@ -1,56 +1,117 @@
 const mongoose = require('mongoose');
-const { DEAL_STATUS } = require('../config/constants');
 
-const witnessSchema = new mongoose.Schema({
+// ==================== PARTY SCHEMA (Seller & Buyer) ====================
+const partySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
-  fatherName: { type: String, trim: true, default: '' },
-  address: { type: String, trim: true, default: '' },
-  phone: { type: String, match: /^[6-9]\d{9}$/ },
+  mobile: { type: String, required: true, match: /^[6-9]\d{9}$/ },
+  aadhaarNumber: { type: String, trim: true, default: '' },
+  aadhaarVerified: { type: Boolean, default: false },
+  aadhaarVerifiedAt: { type: Date },
+  photo: { type: String, default: '' },
+  photoUploadedAt: { type: Date },
 }, { _id: false });
 
-const dealSchema = new mongoose.Schema(
-  {
-    property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true, index: true },
-    buyer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    broker: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+// ==================== OTP VERIFICATION SCHEMA ====================
+const otpVerificationSchema = new mongoose.Schema({
+  verified: { type: Boolean, default: false },
+  verifiedAt: { type: Date },
+  otpSentAt: { type: Date },
+}, { _id: false });
 
-    buyerOtp: {
-      isVerified: { type: Boolean, default: false },
-      verifiedAt: { type: Date },
-    },
-    ownerOtp: {
-      isVerified: { type: Boolean, default: false },
-      verifiedAt: { type: Date },
-    },
-
-    finalAmount: { type: Number, min: 0 },
-    tokenAmount: { type: Number, min: 0 },
-    commissionPercent: { type: Number, default: 0 },
-
-    status: { type: String, enum: Object.values(DEAL_STATUS), default: DEAL_STATUS.INITIATED, index: true },
-
-    // Agreement
-    agreementUrl: { type: String },
-    agreementNumber: { type: String, unique: true, sparse: true },
-    agreementGeneratedAt: { type: Date },
-
-    // 👇 WITNESSES — DONO TARAF SE 1-1
-    sellerWitness: { type: witnessSchema, default: null },
-    buyerWitness: { type: witnessSchema, default: null },
-
-    pointDeducted: { type: Boolean, default: false },
-    pointDeductedAt: { type: Date },
-    milestoneUpdated: { type: Boolean, default: false },
-    closedAt: { type: Date },
-    closedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    remarks: { type: String, maxlength: 1000, default: '' },
-    isFlagged: { type: Boolean, default: false },
-    flagReason: { type: String, default: '' },
+// ==================== MAIN DEAL SCHEMA ====================
+const dealSchema = new mongoose.Schema({
+  // 1. Property & Broker Details
+  property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true, index: true },
+  broker: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  
+  // 2. Parties (Seller, Buyer, Dealer Photo)
+  seller: { type: partySchema, required: true },
+  buyer: { type: partySchema, required: true },
+  brokerPhoto: { type: String, default: '' },
+  
+  // 3. Financials (Sai / Advance Section)
+  totalAmount: { type: Number, required: true, min: 0 },
+  advanceAmount: { type: Number, required: true, min: 0 },
+  balanceAmount: { type: Number, required: true, min: 0 },
+  
+  // 4. Timeline
+  agreementDate: { type: Date, required: true },
+  expectedRegistryDate: { type: Date, required: true },
+  finalRegistryDate: { type: Date },
+  
+  // 5. Documents (Max 20 files each)
+  agreementFiles: [{ type: String }],
+  registryFiles: [{ type: String }],
+  
+  // 6. 3-Way OTP Verification
+  otpVerification: {
+    seller: { type: otpVerificationSchema, default: () => ({}) },
+    buyer: { type: otpVerificationSchema, default: () => ({}) },
+    broker: { type: otpVerificationSchema, default: () => ({}) },
   },
-  { timestamps: true }
-);
+  
+  // 7. Listing Source & Broker OTP Requirement (YE SAHI JAGAH HAI)
+  listedBy: { type: String, enum: ['owner', 'broker'], default: 'owner' },
+  brokerOtpRequired: { type: Boolean, default: true },
+  
+  // 8. Status Flow
+  status: {
+    type: String,
+    enum: ['draft', 'agreement_verified', 'registry_completed', 'cancelled'],
+    default: 'draft',
+    index: true,
+  },
+  
+  // 9. Edit History & Cancellation
+  lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  lastEditedAt: { type: Date },
+  cancelledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  cancellationReason: { type: String, default: '' },
+  cancelledAt: { type: Date },
+  
+}, { timestamps: true });
 
+// ==================== VALIDATIONS & HOOKS ====================
+dealSchema.pre('save', function(next) {
+  if (this.totalAmount && this.advanceAmount) {
+    this.balanceAmount = this.totalAmount - this.advanceAmount;
+  }
+  next();
+});
+
+dealSchema.path('agreementFiles').validate(function(value) {
+  return value.length <= 20;
+}, 'Maximum 20 files allowed for agreement documents');
+
+dealSchema.path('registryFiles').validate(function(value) {
+  return value.length <= 20;
+}, 'Maximum 20 files allowed for registry documents');
+
+// ==================== INDEXES ====================
 dealSchema.index({ broker: 1, status: 1 });
+dealSchema.index({ property: 1, status: 1 });
+dealSchema.index({ 'seller.mobile': 1 });
+dealSchema.index({ 'buyer.mobile': 1 });
+dealSchema.index({ expectedRegistryDate: 1 });
+
+// ==================== HELPER METHODS ====================
+dealSchema.methods.isFullyVerified = function() {
+  // Agar broker OTP required nahi hai, toh sirf seller aur buyer check karo
+  if (!this.brokerOtpRequired) {
+    return this.otpVerification.seller.verified && this.otpVerification.buyer.verified;
+  }
+  return (
+    this.otpVerification.seller.verified &&
+    this.otpVerification.buyer.verified &&
+    this.otpVerification.broker.verified
+  );
+};
+
+dealSchema.methods.getNextOtpStep = function() {
+  if (!this.otpVerification.seller.verified) return 'seller';
+  if (!this.otpVerification.buyer.verified) return 'buyer';
+  if (this.brokerOtpRequired && !this.otpVerification.broker.verified) return 'broker';
+  return null; // All required verified
+};
 
 module.exports = mongoose.model('Deal', dealSchema);

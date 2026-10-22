@@ -740,7 +740,7 @@ const forgotPassword = async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     // Reset URL banao
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const resetUrl = `https://www.propertytick.com/reset-password?token=${resetToken}`;
 
     // Email bhejo
     try {

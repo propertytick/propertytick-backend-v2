@@ -7,7 +7,7 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const path = require('path');
-
+const rentDealRoutes = require('./routes/rentDeal.routes');
 const routes = require('./routes');
 const adminRoutes = require('./routes/admin.routes');
 const superviserRoutes = require('./routes/superviserRoutes'); // 
@@ -24,6 +24,8 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: false,
 }));
+
+
 
 // 2. CORS Setup
 const allowedOrigins = [
@@ -52,6 +54,7 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(compression());
 
+
 // 4. Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -72,6 +75,7 @@ app.use('/api', globalLimiter);
 // ==========================================
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes); 
+app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
 app.use(`/superviser`, superviserRoutes);
 
 // 8. Root Route
