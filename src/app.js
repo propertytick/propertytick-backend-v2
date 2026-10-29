@@ -23,7 +23,7 @@ const app = express();
 app.set('query parser', 'extended');
 app.set('trust proxy', 1);
 
-app.get('/test-ping', (req, res) => res.send('Server is working perfectly!'));
+
 // 1. Security Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -33,7 +33,7 @@ app.use(helmet({
 // 2. CORS Setup
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  'CLIENT_URL=https://www.propertytick.com',
+  'https://www.propertytick.com',
   'http://localhost:5173',
   'https://www.propertytick.com', 
   'https://propertytick.com',
