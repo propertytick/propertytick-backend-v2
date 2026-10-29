@@ -23,6 +23,7 @@ const app = express();
 app.set('query parser', 'extended');
 app.set('trust proxy', 1);
 
+app.get('/test-ping', (req, res) => res.send('Server is working perfectly!'));
 // 1. Security Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
