@@ -1,6 +1,9 @@
 const Colonizer = require('../models/Colonizer');
 const ApiResponse = require('../utils/apiResponse');
 const { HTTP_STATUS } = require('../config/constants');
+const Interest = require('../models/Interest');
+const Notification = require('../models/Notification');
+const { sendViaBrevo } = require('../services/emailService');
 
 /**
  * GET /api/v1/colonizers
@@ -102,9 +105,66 @@ const generateColonizerCardImage = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/colonizers/:id/interest
+ * Jab koi user Colonizer ki project mein interest dikhaye
+ */
+const expressProjectInterest = async (req, res, next) => {
+  try {
+    const { id: colonizerId } = req.params;
+    const { name, mobile, email, pincode, message } = req.body;
+
+    // Colonizer aur uska User (Email ke liye) dhundo
+    const colonizer = await Colonizer.findById(colonizerId).populate('user', 'fullName email');
+    if (!colonizer) return ApiResponse.error(res, 'Project not found', HTTP_STATUS.NOT_FOUND);
+
+    // 1. Interest/Lead ko Database mein save karo
+    const interest = await Interest.create({
+      colonizer: colonizerId,
+      owner: colonizer.user._id,
+      interestedUser: { name, mobile, email, pincode },
+      message: message || '',
+      meta: { projectName: colonizer.projectName } // Project ka naam save kar rahe hain
+    });
+
+    // 2. Colonizer ko Notification bhejo
+    await Notification.create({
+      user: colonizer.user._id,
+      title: 'New Project Interest! 🏘️',
+      body: `${name} is interested in your project "${colonizer.projectName}". Contact: ${mobile}`,
+      type: 'info',
+      link: '/dashboard/messages'
+    });
+
+    // 3. Colonizer ko Email bhejo
+    try {
+      await sendViaBrevo(
+        colonizer.user.email,
+        `New Lead: Project - ${colonizer.projectName}`,
+        `<h2>New Project Lead</h2>
+         <p><strong>Project Name:</strong> ${colonizer.projectName}</p>
+         <hr>
+         <p><strong>Interested User Name:</strong> ${name}</p>
+         <p><strong>Mobile:</strong> ${mobile}</p>
+         <p><strong>Email:</strong> ${email}</p>
+         <p><strong>Pincode:</strong> ${pincode}</p>
+         <p><strong>Message:</strong> ${message || 'No message'}</p>`,
+        `New Lead: ${name}`
+      );
+    } catch (emailErr) {
+      console.error('Project interest email failed:', emailErr.message);
+    }
+
+    return ApiResponse.success(res, { interest }, 'Your interest has been sent successfully!');
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   listColonizers,
   getColonizerById,
   updateMyColonizer,
-  generateColonizerCardImage,   // 👈 YEH ADD KARO
+  generateColonizerCardImage,
+  expressProjectInterest, 
 };

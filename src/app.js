@@ -7,10 +7,14 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const path = require('path');
-const rentDealRoutes = require('./routes/rentDeal.routes');
+
+// Routes Imports
 const routes = require('./routes');
 const adminRoutes = require('./routes/admin.routes');
-const superviserRoutes = require('./routes/superviserRoutes'); // 
+const superviserRoutes = require('./routes/superviserRoutes');
+const rentDealRoutes = require('./routes/rentDeal.routes');
+const interestRoutes = require('./routes/interest.routes'); // 👈 Yahan import karo
+
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { globalLimiter } = require('./middlewares/rateLimiter');
 const logger = require('./utils/logger');
@@ -25,12 +29,10 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-
-
 // 2. CORS Setup
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  'http://localhost:3000',
+  'CLIENT_URL=https://www.propertytick.com',
   'http://localhost:5173',
   'https://www.propertytick.com', 
   'https://propertytick.com',
@@ -54,7 +56,6 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 app.use(compression());
 
-
 // 4. Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -76,6 +77,7 @@ app.use('/api', globalLimiter);
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes); 
 app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
+app.use(`/api/${process.env.API_VERSION || 'v1'}/interests`, interestRoutes); // 👈 Yahan mount karo
 app.use(`/superviser`, superviserRoutes);
 
 // 8. Root Route

@@ -39,9 +39,9 @@ const dealSchema = new mongoose.Schema({
   expectedRegistryDate: { type: Date, required: true },
   finalRegistryDate: { type: Date },
   
-  // 5. Documents (Max 20 files each)
-  agreementFiles: [{ type: String }],
-  registryFiles: [{ type: String }],
+  // 5. Documents (Max 20 files each) - CLEANED (No duplicates)
+  agreementFiles: [{ type: String }], 
+  registryFiles: [{ type: String }], 
   
   // 6. 3-Way OTP Verification
   otpVerification: {
@@ -50,7 +50,7 @@ const dealSchema = new mongoose.Schema({
     broker: { type: otpVerificationSchema, default: () => ({}) },
   },
   
-  // 7. Listing Source & Broker OTP Requirement (YE SAHI JAGAH HAI)
+  // 7. Listing Source & Broker OTP Requirement
   listedBy: { type: String, enum: ['owner', 'broker'], default: 'owner' },
   brokerOtpRequired: { type: Boolean, default: true },
   
@@ -96,7 +96,6 @@ dealSchema.index({ expectedRegistryDate: 1 });
 
 // ==================== HELPER METHODS ====================
 dealSchema.methods.isFullyVerified = function() {
-  // Agar broker OTP required nahi hai, toh sirf seller aur buyer check karo
   if (!this.brokerOtpRequired) {
     return this.otpVerification.seller.verified && this.otpVerification.buyer.verified;
   }
@@ -111,7 +110,7 @@ dealSchema.methods.getNextOtpStep = function() {
   if (!this.otpVerification.seller.verified) return 'seller';
   if (!this.otpVerification.buyer.verified) return 'buyer';
   if (this.brokerOtpRequired && !this.otpVerification.broker.verified) return 'broker';
-  return null; // All required verified
+  return null; 
 };
 
 module.exports = mongoose.model('Deal', dealSchema);

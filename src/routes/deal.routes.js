@@ -9,19 +9,19 @@ const {
   getMyDeals,
   getDealById,
 } = require('../controllers/dealController');
-const validate = require('../middlewares/validate');
 const { protect } = require('../middlewares/auth');
 const { authorize } = require('../middlewares/roleCheck');
 const audit = require('../middlewares/auditLogger');
 const { dealLimiter } = require('../middlewares/rateLimiter');
 const { USER_ROLES } = require('../config/constants');
+const upload = require('../config/multer');
 
 // Sabhi routes protected hain (login required)
 router.use(protect);
 
 // GET Routes
-router.get('/my', getMyDeals);                    // Apni saari deals dekho
-router.get('/:id', getDealById);                  // Specific deal details
+router.get('/my', getMyDeals);
+router.get('/:id', getDealById);
 
 // POST Routes
 router.post(
@@ -49,6 +49,7 @@ router.post(
 router.post(
   '/:id/upload-documents',
   authorize(USER_ROLES.BROKER),
+  upload.array('files', 20), // Max 20 files via Multer
   dealLimiter,
   audit('deal_upload_documents', 'Deal'),
   uploadDealDocuments

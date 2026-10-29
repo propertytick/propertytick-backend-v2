@@ -8,6 +8,7 @@ const ApiResponse = require('../utils/apiResponse');
 const logger = require('../utils/logger');
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
 const { sendOtpEmail, sendWelcomeEmail, sendViaBrevo } = require('../services/emailService');
+const Notification = require('../models/Notification'); // 👈 YEH LINE ADD KARO
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -739,7 +740,7 @@ const forgotPassword = async (req, res, next) => {
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save({ validateBeforeSave: false });
 
-    // Reset URL banao
+    // Reset URL banaoF
     const resetUrl = `https://www.propertytick.com/reset-password?token=${resetToken}`;
 
     // Email bhejo
@@ -1101,6 +1102,18 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
 } catch (err) {
   console.error("Welcome email failed:", err.message);
 }
+
+// 👇 NOTIFICATION ADD KARO
+
+// 👇 NOTIFICATION ADD KARO (100% English)
+await Notification.create({
+  user: user._id,
+  title: 'Welcome to PropertyTick! 🎉',
+  body: 'Your registration was successful. Start exploring properties or list your own.',
+  type: 'registration',
+  link: '/dashboard'
+});
+// ... existing code ...
 	    
 		console.log("SENDING COMPANY EMAIL FOR:", email, phone, role);
     try {
