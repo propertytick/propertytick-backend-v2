@@ -62,5 +62,25 @@ const expressInterest = async (req, res, next) => {
   }
 };
 
-// ... baaki ke functions (getMyInterests, markAsContacted) wahi rahenge ...
+// 1. getMyInterests Function
+const getMyInterests = async (req, res, next) => {
+  try {
+    res.status(200).json({ success: true, data: [] });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+const markAsContacted = async (req, res, next) => {
+  try {
+   
+    res.status(200).json({ success: true, message: 'Marked as contacted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = { expressInterest, getMyInterests, markAsContacted };
+
