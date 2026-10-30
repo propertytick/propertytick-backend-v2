@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Broker = require('../models/Broker');
 const Advocate = require('../models/Advocate');
 const Colonizer = require('../models/Colonizer');
+const Superviser = require('../models/Superviser'); 
 const AdminSettings = require('../models/AdminSettings');
 const AuditLog = require('../models/AuditLog');
 const Notification = require('../models/Notification');
@@ -9,6 +10,7 @@ const ApiResponse = require('../utils/apiResponse');
 const logger = require('../utils/logger');
 const { recalculateUserRank, recalculateColonizerRank } = require('../services/rankingService');
 const { USER_ROLES, KYC_STATUS, HTTP_STATUS } = require('../config/constants');
+
 
 /**
  * GET /api/v1/admin/dashboard
@@ -463,6 +465,86 @@ const deleteUser = async (req, res, next) => {
     next(err);
   }
 };
+// ==========================================
+// SUPERVISER (PARTNER) ADMIN FUNCTIONS
+// ==========================================
+
+/**
+ * GET /api/v1/admin/supervisers
+ * List all partners/supervisers
+ */
+const listSupervisers = async (req, res, next) => {
+  try {
+    const { search, status, page = 1, limit = 20 } = req.query;
+    const filter = {};
+
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { mobile: { $regex: search, $options: 'i' } },
+        { city: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (status) {
+      filter.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+    const [supervisers, total] = await Promise.all([
+      Superviser.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      Superviser.countDocuments(filter),
+    ]);
+
+    return ApiResponse.paginated(res, supervisers, page, limit, total, 'Partners list fetched');
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * PATCH /api/v1/admin/supervisers/:id/status
+ * Update status (Pending -> KYC_Sent -> Active -> Rejected)
+ */
+const updateSuperviserStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ['Pending', 'KYC_Sent', 'Active', 'Rejected'];
+    
+    if (!validStatuses.includes(status)) {
+      return ApiResponse.error(res, 'Invalid status', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const superviser = await Superviser.findById(req.params.id);
+    if (!superviser) return ApiResponse.error(res, 'Partner not found', HTTP_STATUS.NOT_FOUND);
+
+    superviser.status = status;
+    await superviser.save();
+
+    return ApiResponse.success(res, { superviser }, `Partner status updated to ${status}`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * DELETE /api/v1/admin/supervisers/:id
+ * Delete a partner
+ */
+const deleteSuperviser = async (req, res, next) => {
+  try {
+    const superviser = await Superviser.findByIdAndDelete(req.params.id);
+    if (!superviser) return ApiResponse.error(res, 'Partner not found', HTTP_STATUS.NOT_FOUND);
+    
+    return ApiResponse.success(res, null, 'Partner deleted successfully');
+  } catch (err) {
+    next(err);
+  }
+};
 
 module.exports = {
   getDashboard,
@@ -477,5 +559,8 @@ module.exports = {
   toggleColonizerPromotion,
   listAuditLogs,
   recalculateAllRanks,
-   deleteUser,
+  deleteUser,
+  listSupervisers,
+  updateSuperviserStatus,
+  deleteSuperviser,
 };
