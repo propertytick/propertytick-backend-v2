@@ -40,9 +40,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.get('/ping', (req, res) => res.send('pong'));
-app.get('/test-route-123', (req, res) => {
-  res.json({ success: true, message: 'Server is working!' });
-});
+
 
 app.use(cors({
   origin: (origin, callback) => {
