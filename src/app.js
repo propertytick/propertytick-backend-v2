@@ -14,7 +14,7 @@ const adminRoutes = require('./routes/admin.routes');
 const superviserRoutes = require('./routes/superviserRoutes');
 const rentDealRoutes = require('./routes/rentDeal.routes');
 const interestRoutes = require('./routes/interest.routes');
-
+app.use('/api/v1/property', interestRoutes);
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { globalLimiter } = require('./middlewares/rateLimiter');
 const logger = require('./utils/logger');
@@ -78,7 +78,7 @@ app.use('/api', globalLimiter);
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
-app.use(`/api/${process.env.API_VERSION || 'v1'}/interests`, interestRoutes);
+app.use(`/api/${process.env.API_VERSION || 'v1'}/property`, interestRoutes);
 app.use(`/superviser`, superviserRoutes);
 
 // 8. Root Route
