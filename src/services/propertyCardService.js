@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
-// 24+ Beautiful Random Gradient Colors (Har baar alag color aayega)
+// 24+ Beautiful Random Gradient Colors (Mobile ke liye optimized)
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -31,39 +31,57 @@ const GRADIENTS = [
   'linear-gradient(135deg, #1f4037 0%, #99f2c8 100%)'
 ];
 
-const formatPrice = (amount) => {
-  if (!amount) return '0';
-  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
-  if (amount >= 100000) return `${(amount / 100000).toFixed(2)} L`;
-  if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
-  return `₹${amount}`;
-};
-
 const capitalize = (str) => {
   if (!str) return 'N/A';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
+const formatPrice = (amount) => {
+  if (!amount) return '₹0';
+  if (amount >= 10000000) return `${(amount / 10000000).toFixed(2)} Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} L`;
+  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
+  return `₹${amount}`;
+};
+
 /**
- * Generate property card as JPG image
+ * Generate property card as JPG image (Mobile Optimized)
  */
 const generatePropertyCard = async (property, owner, referralCode = null) => {
   let browser;
   try {
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--font-render-hinting=none'
+      ],
       timeout: 60000,
     });
 
     const page = await browser.newPage();
-    await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 2 });
+    
+    // Mobile viewport (1080x1920 - WhatsApp status size)
+    await page.setViewport({ 
+      width: 1080, 
+      height: 1920, 
+      deviceScaleFactor: 2 
+    });
 
     const html = buildPropertyCardHtml(property, owner, referralCode);
 
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.setContent(html, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 60000 
+    });
+
+    // Images load hone ka wait
     await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 }).catch(() => {});
 
+    // Uploads directory ensure karo
     const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -72,10 +90,11 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
     const fileName = `property-${property._id}-${Date.now()}.jpg`;
     const outputPath = path.join(dir, fileName);
 
+    // High quality screenshot
     await page.screenshot({
       path: outputPath,
       type: 'jpeg',
-      quality: 90,
+      quality: 95,
       fullPage: true,
     });
 
@@ -89,7 +108,7 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
 };
 
 /**
- * Build Beautiful HTML for property card
+ * Build Beautiful Mobile-Optimized HTML for property card
  */
 const buildPropertyCardHtml = (property, owner, referralCode) => {
   const randomGradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)];
@@ -106,7 +125,11 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
       <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
         
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+        }
         
         body {
           font-family: 'Poppins', sans-serif;
@@ -130,56 +153,143 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
           box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
 
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 48px; font-weight: 800; color: #2563eb; margin-bottom: 10px; }
+        .header { 
+          text-align: center; 
+          margin-bottom: 30px; 
+        }
+        .header h1 { 
+          font-size: 48px; 
+          font-weight: 800; 
+          color: #2563eb; 
+          margin-bottom: 10px; 
+        }
         .verified-badge {
-          display: inline-flex; align-items: center; gap: 8px;
-          background: #10b981; color: white; padding: 8px 20px;
-          border-radius: 50px; font-size: 20px; font-weight: 600;
+          display: inline-flex; 
+          align-items: center; 
+          gap: 8px;
+          background: #10b981; 
+          color: white; 
+          padding: 8px 20px;
+          border-radius: 50px; 
+          font-size: 20px; 
+          font-weight: 600;
         }
 
         .main-image {
-          width: 100%; height: 500px; object-fit: cover;
-          border-radius: 20px; margin-bottom: 30px; border: 4px solid #e5e7eb;
+          width: 100%; 
+          height: 500px; 
+          object-fit: cover;
+          border-radius: 20px; 
+          margin-bottom: 30px; 
+          border: 4px solid #e5e7eb;
         }
 
-        .title { font-size: 42px; font-weight: 700; color: #111827; margin-bottom: 15px; line-height: 1.2; }
+        .title { 
+          font-size: 42px; 
+          font-weight: 700; 
+          color: #111827; 
+          margin-bottom: 15px; 
+          line-height: 1.2; 
+        }
 
         .price-section {
-          background: #fef3c7; padding: 25px; border-radius: 16px;
-          margin-bottom: 30px; text-align: center; border-left: 6px solid #f59e0b;
+          background: #fef3c7; 
+          padding: 25px; 
+          border-radius: 16px;
+          margin-bottom: 30px; 
+          text-align: center; 
+          border-left: 6px solid #f59e0b;
         }
-        .price { font-size: 56px; font-weight: 800; color: #92400e; }
-        .negotiable { font-size: 24px; color: #059669; font-weight: 600; margin-top: 8px; }
+        .price { 
+          font-size: 56px; 
+          font-weight: 800; 
+          color: #92400e; 
+        }
+        .negotiable { 
+          font-size: 24px; 
+          color: #059669; 
+          font-weight: 600; 
+          margin-top: 8px; 
+        }
 
         .section-title {
-          font-size: 28px; font-weight: 700; color: #2563eb;
-          margin: 30px 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #e5e7eb;
+          font-size: 28px; 
+          font-weight: 700; 
+          color: #2563eb;
+          margin: 30px 0 20px 0; 
+          padding-bottom: 10px; 
+          border-bottom: 3px solid #e5e7eb;
         }
 
-        .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .spec-item {
-          font-size: 24px; display: flex; align-items: center; gap: 12px;
-          background: #f3f4f6; padding: 16px 20px; border-radius: 12px;
+        .specs-grid { 
+          display: grid; 
+          grid-template-columns: 1fr 1fr; 
+          gap: 20px; 
+          margin-bottom: 20px; 
         }
-        .spec-item span { font-size: 28px; }
+        .spec-item {
+          font-size: 24px; 
+          display: flex; 
+          align-items: center; 
+          gap: 12px;
+          background: #f3f4f6; 
+          padding: 16px 20px; 
+          border-radius: 12px;
+        }
+        .spec-item span { 
+          font-size: 28px; 
+        }
 
         .location-text {
-          font-size: 24px; line-height: 1.6; background: #f3f4f6; padding: 20px; border-radius: 12px;
+          font-size: 24px; 
+          line-height: 1.6; 
+          background: #f3f4f6; 
+          padding: 20px; 
+          border-radius: 12px;
         }
 
         .dealer-box {
-          background: #eff6ff; padding: 30px; border-radius: 16px; border-left: 6px solid #2563eb;
+          background: #eff6ff; 
+          padding: 30px; 
+          border-radius: 16px; 
+          border-left: 6px solid #2563eb;
         }
-        .dealer-name { font-size: 32px; font-weight: 700; color: #1e40af; margin-bottom: 15px; }
-        .dealer-detail { font-size: 24px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+        .dealer-name { 
+          font-size: 32px; 
+          font-weight: 700; 
+          color: #1e40af; 
+          margin-bottom: 15px; 
+        }
+        .dealer-detail { 
+          font-size: 24px; 
+          margin-bottom: 10px; 
+          display: flex; 
+          align-items: center; 
+          gap: 12px; 
+        }
 
         .footer {
-          margin-top: 40px; text-align: center; padding-top: 30px; border-top: 3px dashed #d1d5db;
+          margin-top: 40px; 
+          text-align: center; 
+          padding-top: 30px; 
+          border-top: 3px dashed #d1d5db;
         }
-        .footer p { font-size: 22px; color: #4b5563; margin-bottom: 10px; }
-        .footer .website { font-size: 28px; font-weight: 700; color: #2563eb; }
-        .footer .secure { color: #10b981; font-weight: 700; font-size: 24px; margin-top: 15px; }
+        .footer p { 
+          font-size: 22px; 
+          color: #4b5563; 
+          margin-bottom: 10px; 
+        }
+        .footer .website { 
+          font-size: 28px; 
+          font-weight: 700; 
+          color: #2563eb; 
+        }
+        .footer .secure { 
+          color: #10b981; 
+          font-weight: 700; 
+          font-size: 24px; 
+          margin-top: 15px; 
+        }
       </style>
     </head>
     <body>
@@ -200,7 +310,7 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
 
         <div class="section-title">📋 PROPERTY SPECS</div>
         <div class="specs-grid">
-          <div class="spec-item"><span></span> Area: ${property.area?.value || 0} ${property.area?.unit || 'sqft'}</div>
+          <div class="spec-item"><span>📐</span> Area: ${property.area?.value || 0} ${property.area?.unit || 'sqft'}</div>
           <div class="spec-item"><span>🏷️</span> Type: ${capitalize(property.propertyType)}</div>
           <div class="spec-item"><span>✅</span> Status: ${capitalize(property.status)}</div>
           <div class="spec-item"><span>🎯</span> Purpose: ${capitalize(property.listingPurpose)}</div>
@@ -230,6 +340,7 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
 
         <div class="footer">
           <p class="website">🌐 www.propertytick.com</p>
+          <p>📧 support@propertytick.com</p>
           <p>📱 Download Our App on Google Play & App Store</p>
           <p class="secure">✓ Verified & OTP-Secured | India's Trusted Property Platform</p>
         </div>
