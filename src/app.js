@@ -110,8 +110,7 @@ app.get('/debug-routes', (req, res) => {
   res.json({ routes });
 });
 
-app.get('/debug-check', (req, res) => {
-  res.json({ status: 'alive', time: new Date() });
-});
+
+
 
 module.exports = app;

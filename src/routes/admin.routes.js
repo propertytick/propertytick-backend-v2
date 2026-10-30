@@ -14,7 +14,10 @@ const {
   toggleColonizerPromotion,
   listAuditLogs,
   recalculateAllRanks,
-  deleteUser,                  // 👈 ADD
+  deleteUser,
+  listSupervisers,              
+  updateSuperviserStatus,       
+  deleteSuperviser,             
 } = require('../controllers/adminController');
 
 const validate = require('../middlewares/validate');
@@ -33,20 +36,26 @@ const crypto = require('crypto');
 const Superviser = require('../models/Superviser');
 const { sendEmail } = require('../services/emailService');
 
-// Admin: Approve & Send KYC Link
-router.post('/superviser/send-kyc-link/:id', async (req, res) => {
+// All admin routes require authentication + admin role
+router.use(protect, adminOnly);
+
+// ---- Supervisers (Partners) ----
+router.get('/supervisers', audit('admin_list_supervisers', 'Superviser'), listSupervisers);
+router.patch('/supervisers/:id/status', audit('admin_update_superviser_status', 'Superviser'), updateSuperviserStatus);
+router.delete('/supervisers/:id', audit('admin_delete_superviser', 'Superviser'), deleteSuperviser);
+
+// Secure KYC Link Route (Ab ye protected hai)
+router.post('/superviser/send-kyc-link/:id', audit('admin_send_kyc_link', 'Superviser'), async (req, res) => {
   try {
     const superviser = await Superviser.findById(req.params.id);
     if (!superviser) return res.status(404).json({ message: "Superviser not found" });
-
-    // Token banayein (5 Din ke liye)
+    
     const token = crypto.randomBytes(32).toString('hex');
     superviser.kycToken = token;
     superviser.kycTokenExpiry = Date.now() + 5 * 24 * 60 * 60 * 1000; // 5 Days
     superviser.status = 'KYC_Sent';
     await superviser.save();
-
-    // Link Email par bhejein
+    
     const kycLink = `https://www.propertytick.com/superviser-kyc?token=${token}`;
     await sendEmail(
       superviser.email,
@@ -56,15 +65,12 @@ router.post('/superviser/send-kyc-link/:id', async (req, res) => {
        <p><a href="${kycLink}" style="padding:10px 20px; background:#2563eb; color:white; text-decoration:none; border-radius:5px;">Complete KYC</a></p>
        <p>Yeh link 5 din tak valid hai.</p>`
     );
-
+    
     res.status(200).json({ message: "KYC link sent successfully to " + superviser.email });
   } catch (error) {
     res.status(500).json({ message: "Error sending link", error: error.message });
   }
 });
-
-// All admin routes require authentication + admin role
-router.use(protect, adminOnly);
 
 // ---- Dashboard ----
 router.get('/dashboard', audit('admin_dashboard', 'Admin'), getDashboard);
@@ -75,7 +81,7 @@ router.get('/users/:id', audit('admin_get_user', 'User'), getUserById);
 router.patch('/users/:id/block', validate(blockUserSchema), audit('admin_block_user', 'User'), blockUser);
 router.patch('/users/:id/kyc', validate(kycActionSchema), audit('admin_kyc_update', 'User'), updateKyc);
 router.patch('/users/:id/promote', validate(promoteUserSchema), audit('admin_promote_user', 'User'), togglePromotion);
-router.delete('/users/:id', audit('admin_delete_user', 'User'), deleteUser);   // 👈 ADD
+router.delete('/users/:id', audit('admin_delete_user', 'User'), deleteUser);
 
 // ---- Fees ----
 router.get('/fees', audit('admin_get_fees', 'AdminSettings'), getFees);
