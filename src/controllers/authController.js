@@ -1234,22 +1234,30 @@ const deleteSuperviser = async (req, res, next) => {
   }
 };
 
+/* =====================================================
+   EXPORTS (Only Auth Functions)
+   ===================================================== */
 module.exports = {
-  getDashboard,
-  listUsers,
-  getUserById,
-  blockUser,
-  updateKyc,
-  togglePromotion,
-  getFees,
-  updateFees,
-  listColonizers,
-  toggleColonizerPromotion,
-  listAuditLogs,
-  recalculateAllRanks,
-  deleteUser,
-  
-  listSupervisers,
-  updateSuperviserStatus,
-  deleteSuperviser,
+  sendOtp,
+  verifyLoginOtp,
+  sendEmailOtp,
+  updateProfile,
+  verifyEmailOtp,
+  loginEmailOtp,
+  verifyLoginEmailOtp,
+  registerBroker,
+  registerAdvocate,
+  registerColonizer,
+  registerBuyer,
+  registerSimple,
+  refreshAccessToken,
+  logout,
+  getMe,
+  getProfileBySlug,
+  login,
+  forgotPassword,
+  resetPassword,
+  forgotUserId,
+  getProfessionals,
+  completeRegistration,
 };
