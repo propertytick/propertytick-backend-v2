@@ -33,16 +33,18 @@ app.use(helmet({
 // 2. CORS Setup
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  'https://www.propertytick.com',
+  'https://www.propertytick.com',   // ✅ Sahi
   'http://localhost:5173',
-  'https://www.propertytick.com', 
   'https://propertytick.com',
-  'https://propertytick-frontend.vercel.app' 
+  'https://propertytick-frontend.vercel.app'
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Postman/curl jaise requests ke liye origin undefined hota hai
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
