@@ -42,18 +42,28 @@ const expressInterest = async (req, res, next) => {
       interestedUser = { name, email, phone, city, pinCode };
     }
 
+    // ✅ OFFER PRICE nikalo (agar user ne bhari hai)
+    const offeredPrice = req.body.offeredPrice ? Number(req.body.offeredPrice) : null;
+
     // ========================================
     // 1. PROPERTY OWNER KO NOTIFICATION BHEJO (In-App)
     // ========================================
+    let notificationBody = `${interestedUser.name || interestedUser.fullName || 'Someone'} is interested in your property "${property.title}". Contact: ${interestedUser.phone || 'N/A'}, ${interestedUser.email || 'N/A'}`;
+    
+    if (offeredPrice) {
+      notificationBody += ` | 💰 Offer Price: ₹${offeredPrice.toLocaleString('en-IN')}`;
+    }
+
     await Notification.create({
       user: propertyOwner._id,
       title: '🎯 New Interest on Your Property!',
-      body: `${interestedUser.name || interestedUser.fullName || 'Someone'} is interested in your property "${property.title}". Contact: ${interestedUser.phone || 'N/A'}, ${interestedUser.email || 'N/A'}`,
+      body: notificationBody,
       type: 'interest',
       link: `/property/${property._id}`,
       metadata: {
         propertyId: property._id,
         propertyTitle: property.title,
+        offeredPrice: offeredPrice,
         interestedUser: {
           name: interestedUser.name || interestedUser.fullName,
           email: interestedUser.email,
@@ -65,8 +75,19 @@ const expressInterest = async (req, res, next) => {
     });
 
     // ========================================
-    // 2. PROPERTY OWNER KO EMAIL BHEJO
+    // 2. PROPERTY OWNER KO EMAIL BHEJO (WITH OFFER PRICE)
     // ========================================
+    const listedPrice = property.price?.amount || property.price || 0;
+    const offerHighlight = offeredPrice 
+      ? `<div style="background:#fef3c7;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #f59e0b;">
+           <p style="margin:0;font-size:14px;color:#92400e;"><strong>💰 User's Offer Price:</strong></p>
+           <p style="margin:8px 0 0 0;font-size:24px;font-weight:bold;color:#92400e;">₹${offeredPrice.toLocaleString('en-IN')}</p>
+           <p style="margin:4px 0 0 0;font-size:12px;color:#92400e;">Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
+         </div>`
+      : `<div style="background:#f3f4f6;padding:12px;border-radius:8px;margin:16px 0;">
+           <p style="margin:0;font-size:14px;color:#6b7280;">User ne koi offer price nahi bhari hai. Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
+         </div>`;
+
     const ownerEmailHtml = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;">
         <div style="background:#2563eb;color:white;padding:20px;border-radius:8px 8px 0 0;margin:-32px -32px 24px -32px;">
@@ -80,15 +101,17 @@ const expressInterest = async (req, res, next) => {
         <div style="background:#f3f4f6;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #2563eb;">
           <h3 style="margin:0 0 10px 0;color:#1f2937;">${property.title}</h3>
           <p style="margin:5px 0;color:#6b7280;">📍 ${property.location?.address || property.location?.city || 'Location not specified'}</p>
-          <p style="margin:5px 0;color:#6b7280;">💰 ₹${property.price?.amount?.toLocaleString() || property.price || 'N/A'}</p>
-          <p style="margin:5px 0;color:#6b7280;"> Purpose: ${property.listingPurpose === 'buy' ? 'For Sale' : 'For Rent'}</p>
+          <p style="margin:5px 0;color:#6b7280;"> Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
+          <p style="margin:5px 0;color:#6b7280;">Purpose: ${property.listingPurpose === 'buy' ? 'For Sale' : 'For Rent'}</p>
         </div>
 
-        <h3 style="color:#2563eb;margin-top:24px;"> Interested User Details:</h3>
+        ${offerHighlight}
+
+        <h3 style="color:#2563eb;margin-top:24px;">👤 Interested User Details:</h3>
         <div style="background:#eff6ff;padding:20px;border-radius:8px;margin:16px 0;">
           <p style="margin:8px 0;"><strong>Name:</strong> ${interestedUser.name || interestedUser.fullName || 'Not provided'}</p>
           <p style="margin:8px 0;"><strong>📧 Email:</strong> <a href="mailto:${interestedUser.email}" style="color:#2563eb;">${interestedUser.email}</a></p>
-          <p style="margin:8px 0;"><strong>📱 Phone:</strong> <a href="tel:${interestedUser.phone}" style="color:#2563eb;">${interestedUser.phone}</a></p>
+          <p style="margin:8px 0;"><strong> Phone:</strong> <a href="tel:${interestedUser.phone}" style="color:#2563eb;">${interestedUser.phone}</a></p>
           <p style="margin:8px 0;"><strong>🏙️ City:</strong> ${interestedUser.city || interestedUser.location?.city || 'Not provided'}</p>
           <p style="margin:8px 0;"><strong>📮 Pin Code:</strong> ${interestedUser.pinCode || interestedUser.location?.pinCode || 'Not provided'}</p>
         </div>
@@ -107,17 +130,17 @@ const expressInterest = async (req, res, next) => {
     try {
       await sendViaBrevo(
         propertyOwner.email,
-        `🎯 New Interest: ${property.title}`,
+        `🎯 New Interest: ${property.title}${offeredPrice ? ` (Offer: ₹${offeredPrice.toLocaleString('en-IN')})` : ''}`,
         ownerEmailHtml,
         `New Interest: ${property.title}`
       );
       console.log('✅ Owner notification email sent to:', propertyOwner.email);
     } catch (emailErr) {
-      console.error(' Owner email failed:', emailErr.message);
+      console.error('❌ Owner email failed:', emailErr.message);
     }
 
     // ========================================
-    // 3. INTERESTED USER KO CONFIRMATION EMAIL BHEJO (agar logged in hai)
+    // 3. INTERESTED USER KO CONFIRMATION EMAIL BHEJO
     // ========================================
     if (req.user && req.user.email) {
       const userConfirmationHtml = `
@@ -133,7 +156,8 @@ const expressInterest = async (req, res, next) => {
           <div style="background:#f0fdf4;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
             <h3 style="margin:0 0 10px 0;color:#1f2937;">${property.title}</h3>
             <p style="margin:5px 0;color:#6b7280;">📍 ${property.location?.address || property.location?.city || 'Location not specified'}</p>
-            <p style="margin:5px 0;color:#6b7280;"> ₹${property.price?.amount?.toLocaleString() || property.price || 'N/A'}</p>
+            <p style="margin:5px 0;color:#6b7280;"> Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
+            ${offeredPrice ? `<p style="margin:5px 0;color:#6b7280;"><strong>Your Offer: ₹${offeredPrice.toLocaleString('en-IN')}</strong></p>` : ''}
           </div>
 
           <p style="font-size:16px;color:#374151;">The property owner will contact you soon on your registered phone number.</p>
@@ -167,6 +191,7 @@ const expressInterest = async (req, res, next) => {
       {
         propertyId: property._id,
         propertyTitle: property.title,
+        offeredPrice: offeredPrice,
         message: 'Interest expressed successfully. Property owner has been notified.'
       },
       'Interest expressed successfully'
@@ -184,14 +209,12 @@ const getMyInterests = async (req, res, next) => {
   try {
     const userId = req.user._id;
     
-    // Is user ki saari properties dhundho
     const properties = await Property.find({
       $or: [{ listedBy: userId }, { owner: userId }]
     }).select('_id title listingPurpose price location');
 
     const propertyIds = properties.map(p => p._id);
 
-    // Un properties par jo interests aaye hain
     const Notification = require('../models/Notification');
     const interests = await Notification.find({
       user: userId,
