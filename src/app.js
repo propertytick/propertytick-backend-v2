@@ -13,7 +13,7 @@ const routes = require('./routes');
 const adminRoutes = require('./routes/admin.routes');
 const superviserRoutes = require('./routes/superviserRoutes');
 const rentDealRoutes = require('./routes/rentDeal.routes');
-const interestRoutes = require('./routes/interest.routes'); // 👈 Yahan import karo
+const interestRoutes = require('./routes/interest.routes');
 
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { globalLimiter } = require('./middlewares/rateLimiter');
@@ -23,30 +23,23 @@ const app = express();
 app.set('query parser', 'extended');
 app.set('trust proxy', 1);
 
-
 // 1. Security Middlewares
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: false,
 }));
 
-// 2. CORS Setup
+// 2. CORS Setup (Sabse pehle, taaki sabhi routes par apply ho)
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  'https://www.propertytick.com',   // ✅ Sahi
+  'https://www.propertytick.com',
   'http://localhost:5173',
   'https://propertytick.com',
   'https://propertytick-frontend.vercel.app'
 ].filter(Boolean);
 
-app.get('/ping', (req, res) => res.send('pong'));
-app.get('/test-route-123', (req, res) => {
-  res.json({ success: true, message: 'Server is working!' });
-});
-
 app.use(cors({
   origin: (origin, callback) => {
-    // Postman/curl jaise requests ke liye origin undefined hota hai
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -76,16 +69,16 @@ if (process.env.NODE_ENV === 'development') {
 // 5. Static Folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 6. Rate Limiter
+// 6. Rate Limiter (Health check se pehle nahi, baad mein)
 app.use('/api', globalLimiter);
 
 // ==========================================
-// 7. ROUTES (Yahan sahi se mount kiya gaya hai)
+// 7. ROUTES
 // ==========================================
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
-app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes); 
+app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
-app.use(`/api/${process.env.API_VERSION || 'v1'}/interests`, interestRoutes); // 👈 Yahan mount karo
+app.use(`/api/${process.env.API_VERSION || 'v1'}/interests`, interestRoutes);
 app.use(`/superviser`, superviserRoutes);
 
 // 8. Root Route
