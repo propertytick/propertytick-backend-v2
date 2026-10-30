@@ -4,10 +4,11 @@ const Notification = require('../models/Notification');
 const ApiResponse = require('../utils/apiResponse');
 const { sendViaBrevo } = require('../services/emailService');
 const { HTTP_STATUS } = require('../config/constants');
+const jwt = require('jsonwebtoken'); // ✅ Token check karne ke liye add kiya
 
 /**
  * POST /api/v1/property/:propertyId/interest
- * Jab koi user "I'm Interested" button click kare
+ * Jab koi user (Guest ya Logged-in) "I'm Interested" button click kare
  */
 const expressInterest = async (req, res, next) => {
   try {
@@ -24,31 +25,46 @@ const expressInterest = async (req, res, next) => {
 
     // Property owner determine karo (listedBy ya owner)
     const propertyOwner = property.listedBy || property.owner;
-    
     if (!propertyOwner) {
       return ApiResponse.error(res, 'Property owner not found', HTTP_STATUS.NOT_FOUND);
     }
 
-    // Interested user details (agar logged in hai)
+    // ✅ STEP 1: Check karo ki user logged in hai ya nahi
     let interestedUser = null;
+    
+    // Pehle req.user check karo (agar koi middleware laga ho)
     if (req.user) {
       interestedUser = req.user;
     } else {
-      // Guest user ke liye body se details lo
+      // Agar req.user nahi hai, toh manually Authorization header se token check karo
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          interestedUser = await User.findById(decoded.id).select('fullName email phone location city pinCode');
+        } catch (err) {
+          // Token invalid ya expired hai, ise guest maan lenge
+        }
+      }
+    }
+
+    // ✅ STEP 2: Agar abhi bhi user nahi mila, toh ye Guest User hai
+    if (!interestedUser) {
       const { name, email, phone, city, pinCode } = req.body;
       if (!email || !phone) {
-        return ApiResponse.error(res, 'Email and phone are required', HTTP_STATUS.BAD_REQUEST);
+        return ApiResponse.error(res, 'Email and phone are required for guest users', HTTP_STATUS.BAD_REQUEST);
       }
       interestedUser = { name, email, phone, city, pinCode };
     }
 
-    // ✅ OFFER PRICE nikalo (agar user ne bhari hai)
+    // ✅ STEP 3: OFFER PRICE nikalo (agar user ne bhari hai)
     const offeredPrice = req.body.offeredPrice ? Number(req.body.offeredPrice) : null;
 
     // ========================================
     // 1. PROPERTY OWNER KO NOTIFICATION BHEJO (In-App)
     // ========================================
-    let notificationBody = `${interestedUser.name || interestedUser.fullName || 'Someone'} is interested in your property "${property.title}". Contact: ${interestedUser.phone || 'N/A'}, ${interestedUser.email || 'N/A'}`;
+    let notificationBody = `${interestedUser.fullName || interestedUser.name || 'Someone'} is interested in your property "${property.title}". Contact: ${interestedUser.phone || 'N/A'}, ${interestedUser.email || 'N/A'}`;
     
     if (offeredPrice) {
       notificationBody += ` | 💰 Offer Price: ₹${offeredPrice.toLocaleString('en-IN')}`;
@@ -65,7 +81,7 @@ const expressInterest = async (req, res, next) => {
         propertyTitle: property.title,
         offeredPrice: offeredPrice,
         interestedUser: {
-          name: interestedUser.name || interestedUser.fullName,
+          name: interestedUser.fullName || interestedUser.name,
           email: interestedUser.email,
           phone: interestedUser.phone,
           city: interestedUser.city || interestedUser.location?.city,
@@ -75,7 +91,7 @@ const expressInterest = async (req, res, next) => {
     });
 
     // ========================================
-    // 2. PROPERTY OWNER KO EMAIL BHEJO (WITH OFFER PRICE)
+    // 2. PROPERTY OWNER KO EMAIL BHEJO
     // ========================================
     const listedPrice = property.price?.amount || property.price || 0;
     const offerHighlight = offeredPrice 
@@ -93,34 +109,24 @@ const expressInterest = async (req, res, next) => {
         <div style="background:#2563eb;color:white;padding:20px;border-radius:8px 8px 0 0;margin:-32px -32px 24px -32px;">
           <h1 style="margin:0;font-size:24px;">🎯 New Interest on Your Property!</h1>
         </div>
-        
         <p style="font-size:16px;color:#374151;">Hi <strong>${propertyOwner.fullName || propertyOwner.name}</strong>,</p>
-        
         <p style="font-size:16px;color:#374151;">Great news! Someone is interested in your property:</p>
         
         <div style="background:#f3f4f6;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #2563eb;">
           <h3 style="margin:0 0 10px 0;color:#1f2937;">${property.title}</h3>
           <p style="margin:5px 0;color:#6b7280;">📍 ${property.location?.address || property.location?.city || 'Location not specified'}</p>
-          <p style="margin:5px 0;color:#6b7280;"> Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
-          <p style="margin:5px 0;color:#6b7280;">Purpose: ${property.listingPurpose === 'buy' ? 'For Sale' : 'For Rent'}</p>
+          <p style="margin:5px 0;color:#6b7280;">💰 Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
         </div>
 
         ${offerHighlight}
 
         <h3 style="color:#2563eb;margin-top:24px;">👤 Interested User Details:</h3>
         <div style="background:#eff6ff;padding:20px;border-radius:8px;margin:16px 0;">
-          <p style="margin:8px 0;"><strong>Name:</strong> ${interestedUser.name || interestedUser.fullName || 'Not provided'}</p>
+          <p style="margin:8px 0;"><strong>Name:</strong> ${interestedUser.fullName || interestedUser.name || 'Not provided'}</p>
           <p style="margin:8px 0;"><strong>📧 Email:</strong> <a href="mailto:${interestedUser.email}" style="color:#2563eb;">${interestedUser.email}</a></p>
-          <p style="margin:8px 0;"><strong> Phone:</strong> <a href="tel:${interestedUser.phone}" style="color:#2563eb;">${interestedUser.phone}</a></p>
+          <p style="margin:8px 0;"><strong>📱 Phone:</strong> <a href="tel:${interestedUser.phone}" style="color:#2563eb;">${interestedUser.phone}</a></p>
           <p style="margin:8px 0;"><strong>🏙️ City:</strong> ${interestedUser.city || interestedUser.location?.city || 'Not provided'}</p>
           <p style="margin:8px 0;"><strong>📮 Pin Code:</strong> ${interestedUser.pinCode || interestedUser.location?.pinCode || 'Not provided'}</p>
-        </div>
-
-        <div style="margin-top:24px;text-align:center;">
-          <a href="${process.env.CLIENT_URL || 'https://www.propertytick.com'}/property/${property._id}" 
-             style="display:inline-block;background:#2563eb;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:bold;">
-            View Property Details
-          </a>
         </div>
 
         <p style="margin-top:32px;color:#6b7280;font-size:14px;">Best regards,<br><strong>PropertyTick Team</strong></p>
@@ -140,7 +146,7 @@ const expressInterest = async (req, res, next) => {
     }
 
     // ========================================
-    // 3. INTERESTED USER KO CONFIRMATION EMAIL BHEJO
+    // 3. INTERESTED USER KO CONFIRMATION EMAIL BHEJO (Sirf agar logged in hai)
     // ========================================
     if (req.user && req.user.email) {
       const userConfirmationHtml = `
@@ -148,27 +154,16 @@ const expressInterest = async (req, res, next) => {
           <div style="background:#10b981;color:white;padding:20px;border-radius:8px 8px 0 0;margin:-32px -32px 24px -32px;">
             <h1 style="margin:0;font-size:24px;">✅ Interest Expressed Successfully!</h1>
           </div>
-          
           <p style="font-size:16px;color:#374151;">Hi <strong>${req.user.fullName}</strong>,</p>
-          
           <p style="font-size:16px;color:#374151;">Thank you for your interest! We've shared your details with the property owner.</p>
           
           <div style="background:#f0fdf4;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #10b981;">
             <h3 style="margin:0 0 10px 0;color:#1f2937;">${property.title}</h3>
             <p style="margin:5px 0;color:#6b7280;">📍 ${property.location?.address || property.location?.city || 'Location not specified'}</p>
-            <p style="margin:5px 0;color:#6b7280;"> Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
+            <p style="margin:5px 0;color:#6b7280;">💰 Listed Price: ₹${listedPrice.toLocaleString('en-IN')}</p>
             ${offeredPrice ? `<p style="margin:5px 0;color:#6b7280;"><strong>Your Offer: ₹${offeredPrice.toLocaleString('en-IN')}</strong></p>` : ''}
           </div>
-
           <p style="font-size:16px;color:#374151;">The property owner will contact you soon on your registered phone number.</p>
-
-          <div style="margin-top:24px;text-align:center;">
-            <a href="${process.env.CLIENT_URL || 'https://www.propertytick.com'}/property/${property._id}" 
-               style="display:inline-block;background:#10b981;color:white;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:bold;">
-              View Property
-            </a>
-          </div>
-
           <p style="margin-top:32px;color:#6b7280;font-size:14px;">Best regards,<br><strong>PropertyTick Team</strong></p>
         </div>
       `;
@@ -202,7 +197,7 @@ const expressInterest = async (req, res, next) => {
 };
 
 /**
- * GET /api/v1/property/my
+ * GET /api/v1/property/interests/my
  * Property owner apne interests dekhe
  */
 const getMyInterests = async (req, res, next) => {
@@ -215,7 +210,6 @@ const getMyInterests = async (req, res, next) => {
 
     const propertyIds = properties.map(p => p._id);
 
-    const Notification = require('../models/Notification');
     const interests = await Notification.find({
       user: userId,
       type: 'interest',
@@ -231,16 +225,19 @@ const getMyInterests = async (req, res, next) => {
 };
 
 /**
- * PUT /api/v1/property/:id/contacted
+ * PUT /api/v1/property/interests/:id/contacted
  * Owner mark kare ki usne contact kar liya
  */
 const markAsContacted = async (req, res, next) => {
   try {
-    const Notification = require('../models/Notification');
     const notification = await Notification.findById(req.params.id);
     
     if (!notification) {
       return ApiResponse.error(res, 'Notification not found', HTTP_STATUS.NOT_FOUND);
+    }
+
+    if (notification.user.toString() !== req.user._id.toString()) {
+      return ApiResponse.error(res, 'Unauthorized', HTTP_STATUS.FORBIDDEN);
     }
 
     notification.isContacted = true;
