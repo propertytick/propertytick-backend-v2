@@ -12,9 +12,10 @@ const path = require('path');
 const routes = require('./routes');
 const adminRoutes = require('./routes/admin.routes');
 const superviserRoutes = require('./routes/superviserRoutes');
+
 const rentDealRoutes = require('./routes/rentDeal.routes');
 const interestRoutes = require('./routes/interest.routes');
-app.use('/api/v1/property', interestRoutes);
+
 const { notFound, errorHandler } = require('./middlewares/errorHandler');
 const { globalLimiter } = require('./middlewares/rateLimiter');
 const logger = require('./utils/logger');
