@@ -3,15 +3,56 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
+// 24+ Beautiful Random Gradient Colors (Har baar alag color aayega)
+const GRADIENTS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+  'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+  'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+  'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+  'linear-gradient(135deg, #ff6e7f 0%, #bfe9ff 100%)',
+  'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+  'linear-gradient(135deg, #f5af19 0%, #f12711 100%)',
+  'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+  'linear-gradient(135deg, #0ba360 0%, #3cba92 100%)',
+  'linear-gradient(135deg, #00c6fb 0%, #005bea 100%)',
+  'linear-gradient(135deg, #f83600 0%, #f9d423 100%)',
+  'linear-gradient(135deg, #b721ff 0%, #21d4fd 100%)',
+  'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)',
+  'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)',
+  'linear-gradient(135deg, #4776E6 0%, #8E54E9 100%)',
+  'linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%)',
+  'linear-gradient(135deg, #f953c6 0%, #b91d73 100%)',
+  'linear-gradient(135deg, #834d9b 0%, #d04ed6 100%)',
+  'linear-gradient(135deg, #1f4037 0%, #99f2c8 100%)'
+];
+
+const formatPrice = (amount) => {
+  if (!amount) return '₹0';
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} L`;
+  if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
+  return `₹${amount}`;
+};
+
+const capitalize = (str) => {
+  if (!str) return 'N/A';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
 /**
  * Generate property card as JPG image
  */
 const generatePropertyCard = async (property, owner, referralCode = null) => {
   let browser;
   try {
-        browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
       timeout: 60000,
     });
 
@@ -20,11 +61,7 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
 
     const html = buildPropertyCardHtml(property, owner, referralCode);
 
-    // 👈 networkidle0 → domcontentloaded (timeout fix)
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-    // Images load hone ka wait (optional)
-    await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 }).catch(() => {});
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 60000 });
 
     // Ensure directory exists
     const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
@@ -45,352 +82,246 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
     await browser.close();
     return `/uploads/property-cards/${fileName}`;
   } catch (err) {
-    if (browser) await browser.close();
+    if (browser) await browser.close().catch(() => {});
     logger.error('Property card generation failed:', err.message);
     throw err;
   }
 };
 
 /**
- * Build HTML for property card
+ * Build Beautiful HTML for property card
  */
 const buildPropertyCardHtml = (property, owner, referralCode) => {
-  const mainPhoto = property.photos?.[0] || '';
-  const otherPhotos = property.photos?.slice(1, 10) || [];
-
-  const formatPrice = (amount) => {
-    if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
-    if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} L`;
-    if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
-    return `₹${amount}`;
-  };
+  const randomGradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)];
+  const mainPhoto = property.photos?.[0] || 'https://via.placeholder.com/1080x600?text=No+Photo';
+  const dealer = owner || property.listedBy || {};
 
   return `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: 'Poppins', 'Noto Color Emoji', sans-serif;
-    background: linear-gradient(135deg, #0a5c36 0%, #064229 100%);
-    color: #ffffff;
-    width: 1080px;
-    min-height: 1920px;
-    padding: 40px;
-  }
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Property Card</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+          font-family: 'Poppins', sans-serif;
+          background: ${randomGradient};
+          color: #ffffff;
+          width: 1080px;
+          min-height: 1920px;
+          padding: 60px 40px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
 
-  .card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    padding: 40px;
-    backdrop-filter: blur(10px);
-  }
+        .card-container {
+          width: 100%;
+          max-width: 1000px;
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 30px;
+          padding: 40px;
+          color: #1f2937;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
 
-  /* Header */
-  .header {
-    text-align: center;
-    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
-    padding-bottom: 24px;
-    margin-bottom: 32px;
-  }
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .header h1 {
+          font-size: 48px;
+          font-weight: 800;
+          color: #2563eb;
+          margin-bottom: 10px;
+        }
+        .verified-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: #10b981;
+          color: white;
+          padding: 8px 20px;
+          border-radius: 50px;
+          font-size: 20px;
+          font-weight: 600;
+        }
 
-  .header h1 {
-    font-size: 48px;
-    font-weight: 800;
-    letter-spacing: 4px;
-    margin-bottom: 8px;
-  }
+        .main-image {
+          width: 100%;
+          height: 500px;
+          object-fit: cover;
+          border-radius: 20px;
+          margin-bottom: 30px;
+          border: 4px solid #e5e7eb;
+        }
 
-  .header .subtitle {
-    font-size: 24px;
-    font-style: italic;
-    color: #a8e6c4;
-    font-weight: 600;
-  }
+        .title {
+          font-size: 42px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 15px;
+          line-height: 1.2;
+        }
 
-  /* Main Photo */
-  .main-photo {
-    width: 100%;
-    height: 500px;
-    border-radius: 20px;
-    overflow: hidden;
-    margin-bottom: 32px;
-    border: 4px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  }
+        .price-section {
+          background: #fef3c7;
+          padding: 25px;
+          border-radius: 16px;
+          margin-bottom: 30px;
+          text-align: center;
+          border-left: 6px solid #f59e0b;
+        }
+        .price {
+          font-size: 56px;
+          font-weight: 800;
+          color: #92400e;
+        }
+        .negotiable {
+          font-size: 24px;
+          color: #059669;
+          font-weight: 600;
+          margin-top: 8px;
+        }
 
-  .main-photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
+        .section-title {
+          font-size: 28px;
+          font-weight: 700;
+          color: #2563eb;
+          margin: 30px 0 20px 0;
+          padding-bottom: 10px;
+          border-bottom: 3px solid #e5e7eb;
+        }
 
-  /* Address */
-  .address {
-    font-size: 26px;
-    line-height: 1.6;
-    margin-bottom: 32px;
-    font-weight: 600;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 16px;
-    border-left: 6px solid #34d399;
-  }
+        .specs-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 20px;
+        }
+        .spec-item {
+          font-size: 24px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: #f3f4f6;
+          padding: 16px 20px;
+          border-radius: 12px;
+        }
+        .spec-item span { font-size: 28px; }
 
-  /* Section */
-  .section {
-    margin-bottom: 28px;
-  }
+        .location-text {
+          font-size: 24px;
+          line-height: 1.6;
+          background: #f3f4f6;
+          padding: 20px;
+          border-radius: 12px;
+        }
 
-  .section-title {
-    font-size: 24px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    padding: 12px 0;
-    border-top: 2px solid rgba(255, 255, 255, 0.2);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-    margin-bottom: 16px;
-    text-align: center;
-  }
+        .dealer-box {
+          background: #eff6ff;
+          padding: 30px;
+          border-radius: 16px;
+          border-left: 6px solid #2563eb;
+        }
+        .dealer-name {
+          font-size: 32px;
+          font-weight: 700;
+          color: #1e40af;
+          margin-bottom: 15px;
+        }
+        .dealer-detail {
+          font-size: 24px;
+          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
 
-  .section-body {
-    font-size: 22px;
-    line-height: 1.8;
-  }
+        .footer {
+          margin-top: 40px;
+          text-align: center;
+          padding-top: 30px;
+          border-top: 3px dashed #d1d5db;
+        }
+        .footer p {
+          font-size: 22px;
+          color: #4b5563;
+          margin-bottom: 10px;
+        }
+        .footer .website {
+          font-size: 28px;
+          font-weight: 700;
+          color: #2563eb;
+        }
+        .footer .secure {
+          color: #10b981;
+          font-weight: 700;
+          font-size: 24px;
+          margin-top: 15px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card-container">
+        <div class="header">
+          <h1>🏠 PropertyTick</h1>
+          <div class="verified-badge">✓ Verified & OTP-Secured</div>
+        </div>
 
-  .section-body .label {
-    color: #a8e6c4;
-    font-weight: 600;
-  }
+        <img src="${mainPhoto}" class="main-image" alt="Property" crossorigin="anonymous" />
 
-  .price-highlight {
-    font-size: 42px;
-    font-weight: 800;
-    color: #34d399;
-    text-decoration: line-through;
-    text-decoration-color: rgba(255, 255, 255, 0.4);
-  }
+        <div class="title">${property.title || 'Premium Property'}</div>
 
-  .price-negotiable {
-    font-size: 20px;
-    font-style: italic;
-    color: #a8e6c4;
-    margin-top: 4px;
-  }
+        <div class="price-section">
+          <div class="price">💰 ${formatPrice(property.price?.amount)}</div>
+          ${property.price?.isNegotiable ? '<div class="negotiable">💵 Negotiable</div>' : ''}
+        </div>
 
-  /* Other Photos Grid */
-  .photo-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-top: 16px;
-  }
+        <div class="section-title">📋 PROPERTY SPECS</div>
+        <div class="specs-grid">
+          <div class="spec-item"><span>📐</span> Area: ${property.area?.value || 0} ${property.area?.unit || 'sqft'}</div>
+          <div class="spec-item"><span>🏷️</span> Type: ${capitalize(property.propertyType)}</div>
+          <div class="spec-item"><span>✅</span> Status: ${capitalize(property.status)}</div>
+          <div class="spec-item"><span>🎯</span> Purpose: ${capitalize(property.listingPurpose)}</div>
+        </div>
 
-  .photo-grid img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.15);
-  }
+        <div class="section-title">📍 LOCATION</div>
+        <div class="location-text">
+          ${property.location?.landmark ? `🏛️ ${property.location.landmark}<br>` : ''}
+          🌆 ${property.location?.city || 'N/A'}${property.location?.district ? `, ${property.location.district}` : ''}<br>
+          📮 Pincode: ${property.location?.pincode || 'N/A'}
+        </div>
 
-  /* Dealer Section */
-  .dealer {
-    background: rgba(0, 0, 0, 0.25);
-    border-radius: 16px;
-    padding: 24px;
-    margin-top: 24px;
-    text-align: center;
-    border: 2px solid rgba(52, 211, 153, 0.4);
-  }
+        <div class="section-title">👤 ${property.listingPurpose === 'rent' ? 'RENT DEALER' : 'PROPERTY DEALER'}</div>
+        <div class="dealer-box">
+          <div class="dealer-name">👤 ${dealer?.fullName || 'N/A'}</div>
+          ${dealer?.shopName ? `<div class="dealer-detail">🏢 ${dealer.shopName}</div>` : ''}
+          <div class="dealer-detail">📱 +91 ${dealer?.phone || 'N/A'}</div>
+          ${dealer?.whatsapp && dealer.whatsapp !== dealer.phone ? `<div class="dealer-detail">💬 +91 ${dealer.whatsapp}</div>` : ''}
+          ${dealer?.location?.city ? `<div class="dealer-detail">📍 ${dealer.location.city}, ${dealer.location.state || ''}</div>` : ''}
+        </div>
 
-  .dealer h3 {
-    font-size: 26px;
-    font-weight: 800;
-    color: #a8e6c4;
-    margin-bottom: 8px;
-  }
+        ${referralCode ? `
+          <div style="margin-top: 25px; background: #fef3c7; padding: 20px; border-radius: 12px; text-align: center; color: #92400e; font-size: 22px; font-weight: 600;">
+            🎁 Use referral code: <strong>${referralCode}</strong> for special discounts!
+          </div>
+        ` : ''}
 
-  .dealer p {
-    font-size: 22px;
-    font-weight: 600;
-  }
-
-  /* Advertisement */
-  .advertisement {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    border-radius: 20px;
-    padding: 32px;
-    margin-top: 32px;
-    text-align: center;
-    color: #ffffff;
-    box-shadow: 0 10px 40px rgba(245, 158, 11, 0.4);
-  }
-
-  .advertisement h2 {
-    font-size: 32px;
-    font-weight: 800;
-    margin-bottom: 12px;
-    letter-spacing: 2px;
-  }
-
-  .advertisement p {
-    font-size: 20px;
-    line-height: 1.6;
-    margin-bottom: 16px;
-  }
-
-  .advertisement .cta {
-    display: inline-block;
-    background: #ffffff;
-    color: #d97706;
-    padding: 14px 32px;
-    border-radius: 12px;
-    font-size: 22px;
-    font-weight: 800;
-    text-decoration: none;
-  }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    margin-top: 32px;
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .referral {
-    background: rgba(52, 211, 153, 0.15);
-    border: 2px dashed #34d399;
-    border-radius: 12px;
-    padding: 16px;
-    margin-top: 20px;
-    text-align: center;
-    font-size: 20px;
-  }
-
-  .referral strong {
-    color: #34d399;
-    font-size: 24px;
-  }
-</style>
-</head>
-<body>
-  <div class="card">
-
-    <!-- Header -->
-    <div class="header">
-      <h1>🏠 PropertyTick</h1>
-      <div class="subtitle">⭐ Premium Listing ⭐</div>
-    </div>
-
-    <!-- Main Photo -->
-    ${mainPhoto ? `
-      <div class="main-photo">
-        <img src="${mainPhoto}" alt="Main Property Photo" />
-      </div>
-    ` : ''}
-
-    <!-- Address -->
-    <div class="address">
-      📍 ${property.title || property.location?.address || 'Property'}<br>
-      ${property.location?.landmark ? `🏛️ ${property.location.landmark}<br>` : ''}
-      ${property.location?.city ? `🌆 ${property.location.city}` : ''}${property.location?.district ? `, ${property.location.district}` : ''}<br>
-      ${property.location?.state ? `${property.location.state}` : ''}${property.location?.pincode ? ` - ${property.location.pincode}` : ''}
-    </div>
-
-    <!-- Price -->
-    <div class="section">
-      <div class="section-title">💰 PRICE DETAILS</div>
-      <div class="section-body" style="text-align: center;">
-        <div class="price-highlight">${formatPrice(property.price?.amount || 0)}</div>
-        ${property.price?.isNegotiable ? '<div class="price-negotiable">✍️ Negotiable</div>' : ''}
-      </div>
-    </div>
-
-    <!-- Property Specs -->
-    <div class="section">
-      <div class="section-title">📋 PROPERTY SPECS</div>
-      <div class="section-body">
-        <div>📐 <span class="label">Area:</span> ${property.area?.value || 0} ${property.area?.unit || ''}</div>
-        <div>🏠 <span class="label">Type:</span> ${capitalize(property.propertyType)}</div>
-        <div>✅ <span class="label">Status:</span> ${capitalize(property.status)}</div>
-      </div>
-    </div>
-
-    <!-- Other Photos -->
-    ${otherPhotos.length > 0 ? `
-      <div class="section">
-        <div class="section-title">📸 MORE PHOTOS</div>
-        <div class="photo-grid">
-          ${otherPhotos.map(url => `<img src="${url}" alt="Property photo" />`).join('')}
+        <div class="footer">
+          <p class="website">🌐 www.propertytick.com</p>
+          <p>📱 Download Our App on Google Play & App Store</p>
+          <p class="secure">✓ Verified & OTP-Secured | India's Trusted Property Platform</p>
         </div>
       </div>
-    ` : ''}
-
-        <!-- Dealer Info -->
-    <div class="dealer">
-      <h3>👤 ${property.listingPurpose === 'rent' ? 'RENT DEALER' : 'PROPERTY DEALER'}</h3>
-      <p style="font-size: 26px; font-weight: 800; margin-bottom: 10px;">
-        ${owner?.fullName || 'N/A'}
-      </p>
-      ${owner?.shopName ? `
-        <p style="font-size: 22px; color: #a8e6c4; font-weight: 600; margin-bottom: 8px;">
-          🏢 ${owner.shopName}
-        </p>
-      ` : ''}
-      ${owner?.phone ? `
-        <p style="font-size: 22px; margin-bottom: 6px;">
-          📞 +91 ${owner.phone}
-        </p>
-      ` : ''}
-      ${owner?.whatsapp && owner.whatsapp !== owner.phone ? `
-        <p style="font-size: 22px; margin-bottom: 6px;">
-          💬 +91 ${owner.whatsapp}
-        </p>
-      ` : ''}
-      ${owner?.location?.city ? `
-        <p style="font-size: 22px;">
-          📍 ${owner.location.city}${owner.location.state ? ', ' + owner.location.state : ''}
-        </p>
-      ` : ''}
-    </div>
-
-    <!-- Referral -->
-    ${referralCode ? `
-      <div class="referral">
-        🎁 Use referral code: <strong>${referralCode}</strong><br>
-        Get special discounts!
-      </div>
-    ` : ''}
-
-    <!-- Advertisement -->
-    <div class="advertisement">
-      <h2>🏗️ COLONIZER</h2>
-      <p>Own a colony? List your project on PropertyTick and reach thousands of buyers!</p>
-      <div class="cta">📞 Contact Us Today</div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      🌐 www.propertytick.com<br>
-      📧 support@propertytick.com
-    </div>
-
-  </div>
-</body>
-</html>
+    </body>
+    </html>
   `;
-};
-
-const capitalize = (str) => {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 module.exports = { generatePropertyCard };
