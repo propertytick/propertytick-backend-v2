@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
-// ✅ Helper functions SABSE UPAR
+// 1. Helper functions
 const capitalize = (str) => {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -18,7 +18,7 @@ const formatPrice = (amount) => {
   return `₹${amount}`;
 };
 
-// ✅ Random Background Colors
+// 2. Random Background Colors
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -52,7 +52,7 @@ const GRADIENTS = [
   'linear-gradient(135deg, #c471f5 0%, #fa71cd 100%)'
 ];
 
-// ✅ HTML Builder Function
+// 3. HTML builder function
 const buildPropertyCardHtml = (property, owner, referralCode) => {
   const randomGradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)];
   const mainPhoto = property.photos?.[0] || 'https://via.placeholder.com/800x400?text=No+Image';
@@ -163,7 +163,7 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
 </html>`;
 };
 
-// ✅ MAIN FUNCTION (Sabse Aakhir Mein)
+// 4. Main function
 const generatePropertyCard = async (property, owner, referralCode = null) => {
   let browser;
   try {
