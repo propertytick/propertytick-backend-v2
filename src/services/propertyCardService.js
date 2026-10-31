@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
-// 24+ Beautiful Random Gradient Colors (Mobile ke liye optimized)
+// 24+ Beautiful Random Gradient Colors
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -38,14 +38,14 @@ const capitalize = (str) => {
 
 const formatPrice = (amount) => {
   if (!amount) return '₹0';
-  if (amount >= 10000000) return `${(amount / 10000000).toFixed(2)} Cr`;
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(2)} Cr`;
   if (amount >= 100000) return `₹${(amount / 100000).toFixed(2)} L`;
-  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
+  if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;
   return `₹${amount}`;
 };
 
 /**
- * Generate property card as JPG image (Mobile Optimized)
+ * Generate property card as JPG image
  */
 const generatePropertyCard = async (property, owner, referralCode = null) => {
   let browser;
@@ -57,14 +57,12 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
-        '--font-render-hinting=none'
+        '--disable-software-rasterizer'
       ],
       timeout: 60000,
     });
 
     const page = await browser.newPage();
-    
-    // Mobile viewport (1080x1920 - WhatsApp status size)
     await page.setViewport({ 
       width: 1080, 
       height: 1920, 
@@ -78,10 +76,10 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
       timeout: 60000 
     });
 
-    // Images load hone ka wait
+    // Wait for images to load
     await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 }).catch(() => {});
 
-    // Uploads directory ensure karo
+    // Ensure directory exists
     const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -90,7 +88,6 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
     const fileName = `property-${property._id}-${Date.now()}.jpg`;
     const outputPath = path.join(dir, fileName);
 
-    // High quality screenshot
     await page.screenshot({
       path: outputPath,
       type: 'jpeg',
@@ -108,7 +105,7 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
 };
 
 /**
- * Build Beautiful Mobile-Optimized HTML for property card
+ * Build Beautiful HTML for property card
  */
 const buildPropertyCardHtml = (property, owner, referralCode) => {
   const randomGradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)];
@@ -325,7 +322,7 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
 
         <div class="section-title">👤 ${property.listingPurpose === 'rent' ? 'RENT DEALER' : 'PROPERTY DEALER'}</div>
         <div class="dealer-box">
-          <div class="dealer-name"> ${dealer?.fullName || 'N/A'}</div>
+          <div class="dealer-name">👤 ${dealer?.fullName || 'N/A'}</div>
           ${dealer?.shopName ? `<div class="dealer-detail">🏢 ${dealer.shopName}</div>` : ''}
           <div class="dealer-detail">📱 +91 ${dealer?.phone || 'N/A'}</div>
           ${dealer?.whatsapp && dealer.whatsapp !== dealer.phone ? `<div class="dealer-detail">💬 +91 ${dealer.whatsapp}</div>` : ''}
@@ -334,7 +331,7 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
 
         ${referralCode ? `
           <div style="margin-top: 25px; background: #fef3c7; padding: 20px; border-radius: 12px; text-align: center; color: #92400e; font-size: 22px; font-weight: 600;">
-             Use referral code: <strong>${referralCode}</strong> for special discounts!
+            🎁 Use referral code: <strong>${referralCode}</strong> for special discounts!
           </div>
         ` : ''}
 
