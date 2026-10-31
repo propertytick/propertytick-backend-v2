@@ -1,8 +1,63 @@
-// ✅ CHANGE 1: puppeteer-core use karein (Docker ke liye)
 const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
+
+
+
+const generatePropertyCard = async (property, owner, referralCode = null) => {
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(), 
+      headless: chromium.headless,
+    });
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 2 });
+
+    const html = buildPropertyCardHtml(property, owner, referralCode);
+    await page.setContent(html, { timeout: 60000 });
+
+    await page.evaluate(async () => {
+      const images = Array.from(document.images);
+      await Promise.all(images.map(img => {
+        if (img.complete) return;
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+    });
+
+    const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    const fileName = `property-${property._id}-${Date.now()}.jpg`;
+    const outputPath = path.join(dir, fileName);
+
+    await page.screenshot({
+      path: outputPath,
+      type: 'jpeg',
+      quality: 90,
+      fullPage: true,
+    });
+
+    await browser.close();
+    return `/uploads/property-cards/${fileName}`;
+  } catch (err) {
+    if (browser) await browser.close();
+    logger.error('Property card generation failed:', err.message);
+    throw err;
+  }
+};
+
+module.exports = { generatePropertyCard };
 
 // ✅ FIX 1: Helper functions SABSE UPAR (Crash fix)
 const capitalize = (str) => {
@@ -172,25 +227,16 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
   let browser;
   try {
     browser = await puppeteer.launch({
-      headless: 'new',
-      // ✅ CHANGE 2: Docker ke andar system Chromium ka path
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium', 
-      args: [
-        '--no-sandbox', 
-        '--disable-setuid-sandbox', 
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-        '--no-zygote',
-      ],
-      timeout: 60000,
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(), // ✅ Yeh package khud path dega
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
     await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 2 });
 
     const html = buildPropertyCardHtml(property, owner, referralCode);
-
     await page.setContent(html, { timeout: 60000 });
 
     await page.evaluate(async () => {
@@ -203,7 +249,7 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
         });
       }));
     });
-    
+
     const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
