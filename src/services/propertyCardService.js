@@ -1,4 +1,5 @@
-const puppeteer = require('puppeteer');
+// ✅ CHANGE 1: puppeteer-core use karein (Docker ke liye)
+const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
@@ -53,14 +54,12 @@ const GRADIENTS = [
 
 /**
  * Build Beautiful HTML for property card (JPG Image ke liye)
- * ✅ FIX 3: Proper HTML/CSS, Clickable Maps, Clickable Photos
  */
 const buildPropertyCardHtml = (property, owner, referralCode) => {
   const randomGradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)];
   const mainPhoto = property.photos?.[0] || 'https://via.placeholder.com/800x400?text=No+Image';
   const otherPhotos = property.photos?.slice(1, 10) || [];
   
-  // ✅ Clickable Google Maps Link
   const addressQuery = encodeURIComponent(
     `${property.location?.landmark || ''} ${property.location?.city || ''} ${property.location?.state || ''}`
   );
@@ -120,7 +119,6 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
       <img src="${mainPhoto}" class="main-photo" alt="Main Property Photo">
       <div class="title">${property.title || 'Premium Property Listing'}</div>
       
-      <!-- ✅ Clickable Location -->
       <a href="${mapsLink}" target="_blank" class="location-link">
         📍 ${property.location?.landmark ? property.location.landmark + ', ' : ''}
         ${property.location?.city || ''}${property.location?.district ? ', ' + property.location.district : ''}
@@ -141,7 +139,6 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
         <div class="spec-item">🎯 Purpose: ${capitalize(property.listingPurpose)}</div>
       </div>
 
-      <!-- ✅ Clickable Other Photos -->
       ${otherPhotos.length > 0 ? `
         <div style="margin-bottom:10px; font-weight:bold; color:#4b5563;">📸 MORE PHOTOS (Click to view):</div>
         <div class="photos-grid">
@@ -176,6 +173,8 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
   try {
     browser = await puppeteer.launch({
       headless: 'new',
+      // ✅ CHANGE 2: Docker ke andar system Chromium ka path
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium', 
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox', 
@@ -192,10 +191,8 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
 
     const html = buildPropertyCardHtml(property, owner, referralCode);
 
-    // 1. HTML set karein (bina waitUntil ke)
     await page.setContent(html, { timeout: 60000 });
 
-    // 2. ✅ YAHAN PASTE KAREIN (Images load hone ka wait)
     await page.evaluate(async () => {
       const images = Array.from(document.images);
       await Promise.all(images.map(img => {
@@ -206,8 +203,6 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
         });
       }));
     });
-
-    // Purani waitForNetworkIdle line hata dein, ab zaroorat nahi hai
     
     const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
     if (!fs.existsSync(dir)) {
