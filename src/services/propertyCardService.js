@@ -176,7 +176,14 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
   try {
     browser = await puppeteer.launch({
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--single-process',
+        '--no-zygote',
+      ],
       timeout: 60000,
     });
 
@@ -185,9 +192,23 @@ const generatePropertyCard = async (property, owner, referralCode = null) => {
 
     const html = buildPropertyCardHtml(property, owner, referralCode);
 
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForNetworkIdle({ idleTime: 500, timeout: 10000 }).catch(() => {});
+    // 1. HTML set karein (bina waitUntil ke)
+    await page.setContent(html, { timeout: 60000 });
 
+    // 2. ✅ YAHAN PASTE KAREIN (Images load hone ka wait)
+    await page.evaluate(async () => {
+      const images = Array.from(document.images);
+      await Promise.all(images.map(img => {
+        if (img.complete) return;
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+    });
+
+    // Purani waitForNetworkIdle line hata dein, ab zaroorat nahi hai
+    
     const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
