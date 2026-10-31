@@ -4,62 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
-
-
-const generatePropertyCard = async (property, owner, referralCode = null) => {
-  let browser;
-  try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(), 
-      headless: chromium.headless,
-    });
-
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 2 });
-
-    const html = buildPropertyCardHtml(property, owner, referralCode);
-    await page.setContent(html, { timeout: 60000 });
-
-    await page.evaluate(async () => {
-      const images = Array.from(document.images);
-      await Promise.all(images.map(img => {
-        if (img.complete) return;
-        return new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-        });
-      }));
-    });
-
-    const dir = path.join(__dirname, '..', 'uploads', 'property-cards');
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    const fileName = `property-${property._id}-${Date.now()}.jpg`;
-    const outputPath = path.join(dir, fileName);
-
-    await page.screenshot({
-      path: outputPath,
-      type: 'jpeg',
-      quality: 90,
-      fullPage: true,
-    });
-
-    await browser.close();
-    return `/uploads/property-cards/${fileName}`;
-  } catch (err) {
-    if (browser) await browser.close();
-    logger.error('Property card generation failed:', err.message);
-    throw err;
-  }
-};
-
-module.exports = { generatePropertyCard };
-
-// ✅ FIX 1: Helper functions SABSE UPAR (Crash fix)
+// ✅ Helper functions SABSE UPAR
 const capitalize = (str) => {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
@@ -73,7 +18,7 @@ const formatPrice = (amount) => {
   return `₹${amount}`;
 };
 
-// ✅ FIX 2: Random Background Colors (Har baar alag color)
+// ✅ Random Background Colors
 const GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
@@ -107,9 +52,7 @@ const GRADIENTS = [
   'linear-gradient(135deg, #c471f5 0%, #fa71cd 100%)'
 ];
 
-/**
- * Build Beautiful HTML for property card (JPG Image ke liye)
- */
+// ✅ HTML Builder Function
 const buildPropertyCardHtml = (property, owner, referralCode) => {
   const randomGradient = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)];
   const mainPhoto = property.photos?.[0] || 'https://via.placeholder.com/800x400?text=No+Image';
@@ -220,16 +163,14 @@ const buildPropertyCardHtml = (property, owner, referralCode) => {
 </html>`;
 };
 
-/**
- * Generate property card as JPG image
- */
+// ✅ MAIN FUNCTION (Sabse Aakhir Mein)
 const generatePropertyCard = async (property, owner, referralCode = null) => {
   let browser;
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(), // ✅ Yeh package khud path dega
+      executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
 
