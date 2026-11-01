@@ -118,7 +118,12 @@ const listProperties = async (req, res, next) => {
     // ✅ Pehle filter banao
     const filter = { deletedAt: null, isActive: true };
 
-    if (propertyType) filter.propertyType = propertyType;
+    // ✅ PropertyType filter (plot tab par plot+land dono)
+if (propertyType === 'plot') {
+  filter.propertyType = { $in: ['plot', 'land'] };
+} else if (propertyType) {
+  filter.propertyType = propertyType;
+}
 
     // ✅ Listing purpose — type, purpose, listingPurpose sab handle
     const finalPurpose = listingPurpose || type || purpose;
