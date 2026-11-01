@@ -9,7 +9,6 @@ const USER_ROLES = {
   COLONIZER: 'colonizer',
   TYPIST: 'typist',
   STAMP_VENDOR: 'stamp_vendor',
-  RENT: 'rent',           // 👈 NAYA ROLE
   ADMIN: 'admin',
 };
 

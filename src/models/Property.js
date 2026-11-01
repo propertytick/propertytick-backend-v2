@@ -5,7 +5,11 @@ const propertySchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     listedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    listedByRole: { type: String, enum: ['buyer', 'broker', 'colonizer', 'advocate'], default: 'buyer' },
+    listedByRole: { 
+  type: String, 
+  enum: ['buyer', 'broker', 'colonizer', 'advocate', 'admin'], 
+  default: 'buyer' 
+},
 
     // Basic info
     title: { type: String, required: true, trim: true, maxlength: 200 },
