@@ -49,13 +49,13 @@ router.post('/reset-password', authLimiter, resetPassword);
 router.post('/forgot-user-id', authLimiter, forgotUserId);
 
 // ---- Mobile OTP ----
-router.post('/send-otp', otpLimiter, validate(loginWithOtpSchema), audit('otp_send', 'Otp'), sendOtp);
+router.post('/send-otp', otpLimiter, audit('otp_send', 'Otp'), sendOtp);
 router.post('/verify-login-otp', authLimiter, validate(verifyOtpSchema), audit('login', 'User'), verifyLoginOtp);
 
 // ---- Email OTP Registration ----
 router.post('/send-email-otp', otpLimiter, audit('otp_email_send', 'Otp'), sendEmailOtp);
 router.post('/verify-email-otp', authLimiter, audit('register_email', 'User'), verifyEmailOtp);
-router.post('/complete-registration', authLimiter, audit('register_complete', 'User'), completeRegistration);  // 👈 YE ADD KARO
+router.post('/complete-registration', authLimiter, audit('register_complete', 'User'), completeRegistration);  
 
 // ---- Email OTP Login ----
 router.post('/login-email-otp', otpLimiter, audit('otp_email_login', 'Otp'), loginEmailOtp);

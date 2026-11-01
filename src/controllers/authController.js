@@ -36,9 +36,18 @@ const buildSlug = (name, suffix) => {
 
 const sendOtp = async (req, res, next) => {
   try {
-    const { phone, purpose } = req.body;
-    const result = await createAndSendOtp(phone, purpose);
-    return ApiResponse.success(res, result, 'OTP sent successfully');
+    const { phone, purpose, fullName, email, userId, pincode, password, referralCode } = req.body;
+    
+    if (purpose === 'register') {
+      // Meta data ke saath OTP bhejein
+      await createAndSendOtp(phone, 'registration', { 
+        fullName, email, userId, password, pincode, referralCode 
+      });
+    } else {
+      await createAndSendOtp(phone, purpose);
+    }
+    
+    return ApiResponse.success(res, { phone }, 'OTP sent successfully');
   } catch (err) {
     next(err);
   }
@@ -643,71 +652,42 @@ const getProfileBySlug = async (req, res, next) => {
 };
 
 // ==================== PASSWORD LOGIN ====================
+// src/controllers/authController.js
+
 const login = async (req, res, next) => {
   try {
     const { identifier, password } = req.body;
 
     if (!identifier || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email/userId/mobile and password',
-      });
+      return ApiResponse.error(res, 'Please provide email/userId and password', HTTP_STATUS.BAD_REQUEST);
     }
 
-    // User dhundho — email, userId, ya phone se
-    const User = require('../models/User');
-    const user = await User.findOne({
-      $or: [
-        { email: identifier.toLowerCase().trim() },
-        { userId: identifier.toLowerCase().trim() },
-        { phone: identifier.trim() },
-      ],
-    }).select('+password');
+    // Check karein ki identifier email hai ya userId
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    
+    let user;
+    if (isEmail) {
+      user = await User.findOne({ email: identifier.toLowerCase() }).select('+password');
+    } else {
+      user = await User.findOne({ userId: identifier.toLowerCase() }).select('+password');
+    }
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+      return ApiResponse.error(res, 'Invalid credentials', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Password compare karo
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
+      return ApiResponse.error(res, 'Invalid credentials', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Check karo user active hai
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: 'Account is deactivated',
-      });
-    }
+    // Token generate karein (jo aapke existing code mein hai)
+    const accessToken = generateAccessToken({ id: user._id, role: user.role });
+    const refreshToken = generateRefreshToken({ id: user._id });
 
-    // Access Token generate karo
-    const accessToken = user.generateAccessToken
-      ? user.generateAccessToken()
-      : require('jsonwebtoken').sign(
-          { id: user._id, role: user.role },
-          process.env.JWT_SECRET,
-          { expiresIn: '7d' }
-        );
+    res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
-    // Password response se hatao
-    user.password = undefined;
-
-    return res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user,
-        accessToken,
-      },
-    });
+    return ApiResponse.success(res, { user: user.toSafeJSON(), accessToken }, 'Login successful');
   } catch (err) {
     next(err);
   }
@@ -866,6 +846,8 @@ const getProfessionals = async (req, res, next) => {
       isBlocked: { $ne: true },
       deletedAt: null,
     };
+	
+	
 
     // Role filter
     if (role && role !== 'all') {

@@ -11,8 +11,7 @@ const path = require('path');
 // Routes Imports
 const routes = require('./routes');
 const adminRoutes = require('./routes/admin.routes');
-const superviserRoutes = require('./routes/superviserRoutes');
-
+const superviserRoutes = require('./routes/superviserRoutes'); // ✅ Sirf import, app.use nahi
 const rentDealRoutes = require('./routes/rentDeal.routes');
 const interestRoutes = require('./routes/interest.routes');
 
@@ -30,7 +29,7 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-// 2. CORS Setup (Sabse pehle, taaki sabhi routes par apply ho)
+// 2. CORS Setup
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'https://www.propertytick.com',
@@ -70,17 +69,19 @@ if (process.env.NODE_ENV === 'development') {
 // 5. Static Folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 6. Rate Limiter (Health check se pehle nahi, baad mein)
+// 6. Rate Limiter
 app.use('/api', globalLimiter);
 
 // ==========================================
-// 7. ROUTES
+// 7. ROUTES (Sabse Neeche, app define hone ke baad)
 // ==========================================
 app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/property`, interestRoutes);
-app.use(`/superviser`, superviserRoutes);
+
+// ✅ Superviser route (sahi jagah par, ek hi baar)
+app.use(`/api/${process.env.API_VERSION || 'v1'}/superviser`, superviserRoutes);
 
 // 8. Root Route
 app.get('/', (req, res) => {
@@ -94,24 +95,5 @@ app.get('/', (req, res) => {
 // 9. Error Handlers (Hamesha sabse neeche)
 app.use(notFound);
 app.use(errorHandler);
-
-app.get('/debug-routes', (req, res) => {
-  const routes = [];
-  app._router.stack.forEach((middleware) => {
-    if (middleware.route) {
-      routes.push({ path: middleware.route.path, methods: middleware.route.methods });
-    } else if (middleware.name === 'router') {
-      middleware.handle.stack.forEach((handler) => {
-        if (handler.route) {
-          routes.push({ path: handler.route.path, methods: handler.route.methods });
-        }
-      });
-    }
-  });
-  res.json({ routes });
-});
-
-
-
 
 module.exports = app;

@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Superviser = require('../models/Superviser'); 
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
-const { sendWelcomeEmail, sendViaBrevo } = require('../services/emailService'); // ✅ Sahi function import kiya
+const { sendWelcomeEmail, sendViaBrevo } = require('../services/emailService'); 
+const { applyForPartnership } = require('../controllers/superviserController');
 
 // ==========================================
 // 1. PUBLIC FORM: Become a Partner (Superviser)
@@ -24,6 +25,9 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
+// Mobile App se Partner Application
+router.post('/apply', applyForPartnership);
 
 // ==========================================
 // 2. VERIFY OTP & SAVE DATA
