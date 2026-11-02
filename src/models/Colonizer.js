@@ -4,16 +4,21 @@ const colonizerSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
 
-    projectName: { type: String, required: true, trim: true, maxlength: 120 },
+    // ✅ Company/Firm details (signup ke waqt)
+    companyName: { type: String, trim: true, default: '' },
+    companyAddress: { type: String, trim: true, default: '' },
+    companyPincode: { type: String, match: /^[1-9][0-9]{5}$/, sparse: true },
+
+    projectName: { type: String, trim: true, maxlength: 120, default: '' },
     projectSlug: { type: String, unique: true, sparse: true, lowercase: true, index: true },
     description: { type: String, maxlength: 2000, default: '' },
 
     // Layout & media
-    layoutMap: { type: String, default: '' }, // Cloudinary URL
+    layoutMap: { type: String, default: '' },
     photos: [{ type: String }],
     videos: [{ type: String }],
 
-    // Location (inherited from User too, but project-specific)
+    // Location (project-specific)
     projectAddress: { type: String, trim: true, default: '' },
     pincode: { type: String, match: /^[1-9][0-9]{5}$/ },
     landmark: { type: String, trim: true, default: '' },

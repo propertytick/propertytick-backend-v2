@@ -1064,15 +1064,15 @@ try {
           courtName: courtName || professionalInfo?.courtName || '',
           services: ['legal_verification'],
         });
-      } else if (role === USER_ROLES.COLONIZER) {
-        roleData = await Colonizer.create({
-          user: user._id,
-          projectName: projectName || professionalInfo?.projectName || `${fullName}'s Project`,
-          projectSlug: buildSlug(projectName || professionalInfo?.projectName || fullName, phone),
-          projectAddress: projectAddress || professionalInfo?.projectAddress || '',
-          landmark: landmark || professionalInfo?.landmark || '',
-          contactNumber: phone,
-        });
+     } else if (role === USER_ROLES.COLONIZER) {
+  roleData = await Colonizer.create({
+    user: user._id,
+    companyName: professionalInfo?.companyName || '',
+    companyAddress: professionalInfo?.companyAddress || '',
+    companyPincode: professionalInfo?.companyPincode || '',
+    contactNumber: phone,
+  });
+}
       } else if (role === USER_ROLES.RENT) {
         roleData = null;
       }
