@@ -1004,23 +1004,38 @@ const completeRegistration = async (req, res, next, isDirectRegistration = false
 
     // 👇 User create karo
     let user;
-    try {
-      user = await User.create({
-        fullName,
-        phone,
-        email: email.toLowerCase(),
-        userId: userId.toLowerCase(),
-        password,
-        role,
-        profileSlug: buildSlug(fullName, phone),
-        isEmailVerified: true,
-        isPhoneVerified: true, // Mobile se verify hua hai
-        location: pincode ? { pincode } : undefined,
-      });
-    } catch (err) {
-      console.error('❌ User.create FAILED:', err.message);
-      return ApiResponse.error(res, 'User creation failed: ' + err.message, HTTP_STATUS.BAD_REQUEST);
+try {
+  user = await User.create({
+    fullName,
+    phone,
+    email: email.toLowerCase(),
+    userId: userId.toLowerCase(),
+    password,
+    role,
+    profileSlug: buildSlug(fullName, phone),
+    isEmailVerified: true,
+    isPhoneVerified: true,
+    location: pincode ? { pincode } : undefined,
+  });
+} catch (err) {
+  // ✅ Duplicate key error handle karein
+  if (err.code === 11000) {
+    if (err.keyPattern?.userId) {
+      return ApiResponse.error(
+        res, 
+        `User ID "${userId}" is already taken. Please choose a different User ID.`, 
+        HTTP_STATUS.CONFLICT
+      );
     }
+    if (err.keyPattern?.email) {
+      return ApiResponse.error(res, 'Email already registered. Please login.', HTTP_STATUS.CONFLICT);
+    }
+    if (err.keyPattern?.phone) {
+      return ApiResponse.error(res, 'Mobile number already registered. Please login.', HTTP_STATUS.CONFLICT);
+    }
+  }
+  return ApiResponse.error(res, 'User creation failed: ' + err.message, HTTP_STATUS.BAD_REQUEST);
+}
 
     // Referral track
     if (finalReferralCode) {
