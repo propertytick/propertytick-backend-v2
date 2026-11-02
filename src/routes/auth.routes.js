@@ -93,14 +93,12 @@ router.post('/send-mobile-otp', async (req, res) => {
 
     // ✅ Duplicate check (userId, email, phone)
     const existingUser = await User.findOne({
-      deletedAt: null,
-      isActive: true,
-      $or: [
-        { email: email?.toLowerCase() },
-        { phone },
-        { userId: userId?.toLowerCase() },
-      ],
-    });
+  $or: [
+    { email: email?.toLowerCase() },
+    { phone },
+    { userId: userId?.toLowerCase() },
+  ],
+});
 
     if (existingUser) {
       
