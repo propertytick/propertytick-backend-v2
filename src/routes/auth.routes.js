@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-
+const User = require('../models/User');
 const {
   sendOtp,
   verifyLoginOtp,
@@ -86,19 +86,55 @@ router.get('/profile/:slug', getProfileBySlug);
 const { createAndSendOtp, verifyOtp } = require('../services/otpService');
 
 // 1. Send Mobile OTP
+// 1. Send Mobile OTP
 router.post('/send-mobile-otp', async (req, res) => {
   try {
     const { phone, fullName, email, userId, password, pincode, referralCode } = req.body;
-    
+
+    // ✅ Duplicate check (userId, email, phone)
+    const existingUser = await User.findOne({
+      deletedAt: null,
+      isActive: true,
+      $or: [
+        { email: email?.toLowerCase() },
+        { phone },
+        { userId: userId?.toLowerCase() },
+      ],
+    });
+
+    if (existingUser) {
+      
+      if (userId && existingUser.userId === userId.toLowerCase()) {
+        return res.status(409).json({ 
+          success: false, 
+          message: `User ID "${userId}" is already taken. Please choose a different User ID.` 
+        });
+      }
+      
+      if (email && existingUser.email === email.toLowerCase()) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Email already registered. Please login.' 
+        });
+      }
+      
+      if (existingUser.phone === phone) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Mobile number already registered. Please login.' 
+        });
+      }
+    }
+
     await createAndSendOtp(phone, 'registration', { fullName, email, userId, password, pincode, referralCode });
-    
+
     res.status(200).json({ success: true, message: "OTP sent to mobile" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 2. Verify Mobile OTP
+
 // 2. Verify Mobile OTP
 router.post('/verify-mobile-otp', async (req, res) => {
   try {
