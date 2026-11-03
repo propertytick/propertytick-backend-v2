@@ -17,6 +17,11 @@ const rentRoutes = require('./rentRoutes');
 const newsletterRoutes = require('./newsletter.routes');
 router.use('/newsletter', newsletterRoutes);
 
+const projectRoutes = require('./project.routes'); 
+
+
+
+
 
 
 // ✅ sendContactMessage import karein
@@ -34,6 +39,7 @@ router.use('/upload', uploadRoutes);
 router.use('/referral', referralRoutes);
 router.use('/users', userRoutes);
 router.use('/rent', rentRoutes);
+router.use('/projects', projectRoutes);
 
 // ==================== CONTACT FORM ====================
 // ✅ Sirf yeh ek line rakhein (nodemailer wala poora code hata dein)
