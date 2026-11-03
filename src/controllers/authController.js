@@ -1092,6 +1092,14 @@ try {
     // OTP ko used mark karo
     otpDoc.isUsed = true;
     await otpDoc.save();
+	
+	console.log("🔥 SEND WELCOME EMAIL CALLED FOR:", email);
+try {
+  await sendWelcomeEmail(email, fullName, role);
+  console.log("WELCOME EMAIL SENT");
+} catch (err) {
+  console.error("Welcome email failed:", err.message);
+}
 
     try {
   await sendWelcomeEmail(email, fullName, role);
