@@ -14,6 +14,11 @@ const referralRoutes = require('./referral.routes');
 const userRoutes = require('./user.routes');
 const rentRoutes = require('./rentRoutes');
 
+const newsletterRoutes = require('./newsletter.routes');
+router.use('/newsletter', newsletterRoutes);
+
+
+
 // ✅ sendContactMessage import karein
 const { sendContactMessage } = require('../controllers/authController');
 
