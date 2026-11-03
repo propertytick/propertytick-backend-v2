@@ -277,6 +277,7 @@ const sendWelcomeEmail = async (toEmail, userName, role) => {
   return sendViaBrevo(toEmail, `Welcome to PropertyTick, ${userName}!`, html, text);
 };
 
+
 // ==================== SEND CONTACT FORM EMAIL ====================
 const sendContactEmail = async (name, email, phone, subject, message) => {
   const adminEmail = process.env.ADMIN_EMAIL || 'info.propertytick@gmail.com';
@@ -296,7 +297,8 @@ const sendContactEmail = async (name, email, phone, subject, message) => {
   
   const textContent = `New Contact Form Submission\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject || 'No Subject'}\nMessage: ${message}`;
   
-  return sendViaBrevo(
+  // ✅ Yahan await add karein
+  return await sendViaBrevo(
     adminEmail, 
     `New Contact: ${subject || 'No Subject'} from ${name}`, 
     htmlContent, 
