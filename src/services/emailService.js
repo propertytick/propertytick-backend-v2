@@ -282,7 +282,8 @@ const sendWelcomeEmail = async (toEmail, userName, role) => {
 const sendContactEmail = async (name, email, phone, subject, message) => {
   const adminEmail = process.env.ADMIN_EMAIL || 'info.propertytick@gmail.com';
   
-  const htmlContent = `
+  
+  const adminHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
       <h2 style="color: #2563eb; margin-top: 0;">📬 New Contact Form Submission</h2>
       <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
@@ -295,14 +296,35 @@ const sendContactEmail = async (name, email, phone, subject, message) => {
     </div>
   `;
   
-  const textContent = `New Contact Form Submission\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject || 'No Subject'}\nMessage: ${message}`;
-  
-  // ✅ Yahan await add karein
-  return await sendViaBrevo(
+  await sendViaBrevo(
     adminEmail, 
     `New Contact: ${subject || 'No Subject'} from ${name}`, 
-    htmlContent, 
-    textContent
+    adminHtml, 
+    `New Contact Form Submission\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject || 'No Subject'}\nMessage: ${message}`
+  );
+
+  
+  const userHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <h2 style="color: #2563eb; margin-top: 0;">✅ Thank You for Contacting PropertyTick</h2>
+      <p>Hi ${name},</p>
+      <p>We have received your message and will get back to you shortly.</p>
+      <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-top: 20px;">
+        <p style="margin: 0 0 8px; font-weight: bold; color: #475569;">Your Message:</p>
+        <p style="margin: 0; color: #334155;">${message}</p>
+      </div>
+      <p style="margin-top: 24px; color: #64748b; font-size: 14px;">
+        Best regards,<br/>
+        <strong>PropertyTick Team</strong>
+      </p>
+    </div>
+  `;
+
+  await sendViaBrevo(
+    email,  
+    `We received your message - PropertyTick`,
+    userHtml,
+    `Thank you for contacting PropertyTick. We have received your message and will get back to you shortly.`
   );
 };
 
