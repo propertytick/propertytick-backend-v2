@@ -1093,13 +1093,7 @@ try {
     otpDoc.isUsed = true;
     await otpDoc.save();
 	
-	console.log("🔥 SEND WELCOME EMAIL CALLED FOR:", email);
-try {
-  await sendWelcomeEmail(email, fullName, role);
-  console.log("WELCOME EMAIL SENT");
-} catch (err) {
-  console.error("Welcome email failed:", err.message);
-}
+	
 
     try {
   await sendWelcomeEmail(email, fullName, role);
@@ -1238,6 +1232,32 @@ const deleteSuperviser = async (req, res, next) => {
   }
 };
 
+// ==================== SEND CONTACT MESSAGE ====================
+const sendContactMessage = async (req, res, next) => {
+  try {
+    const { name, email, phone, subject, message } = req.body;
+
+    if (!name || !email || !message) {
+      return ApiResponse.error(res, 'Name, Email, and Message are required', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    // Email service ko call karo
+    const { sendContactEmail } = require('../services/emailService');
+    
+    // Yeh actually Brevo ko trigger karega
+    await sendContactEmail(name, email, phone, subject, message);
+
+    return ApiResponse.success(
+      res, 
+      null, 
+      'Message sent successfully! We will contact you soon.'
+    );
+  } catch (err) {
+    console.error("❌ Contact form email failed:", err.message);
+    next(err);
+  }
+};
+
 /* =====================================================
    EXPORTS (Only Auth Functions)
    ===================================================== */
@@ -1264,4 +1284,5 @@ module.exports = {
   forgotUserId,
   getProfessionals,
   completeRegistration,
+  sendContactMessage, 
 };

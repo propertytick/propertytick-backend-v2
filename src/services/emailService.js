@@ -277,10 +277,38 @@ const sendWelcomeEmail = async (toEmail, userName, role) => {
   return sendViaBrevo(toEmail, `Welcome to PropertyTick, ${userName}!`, html, text);
 };
 
+// ==================== SEND CONTACT FORM EMAIL ====================
+const sendContactEmail = async (name, email, phone, subject, message) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'info.propertytick@gmail.com';
+  
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 8px; border: 1px solid #e2e8f0;">
+      <h2 style="color: #2563eb; margin-top: 0;">📬 New Contact Form Submission</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Name:</td><td style="padding: 8px 0;">${name}</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Email:</td><td style="padding: 8px 0;"><a href="mailto:${email}">${email}</a></td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Phone:</td><td style="padding: 8px 0;">${phone || 'Not provided'}</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #475569;">Subject:</td><td style="padding: 8px 0;">${subject || 'No Subject'}</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #475569; vertical-align: top;">Message:</td><td style="padding: 8px 0; background: #f8fafc; padding: 12px; border-radius: 6px;">${message}</td></tr>
+      </table>
+    </div>
+  `;
+  
+  const textContent = `New Contact Form Submission\nName: ${name}\nEmail: ${email}\nPhone: ${phone || 'Not provided'}\nSubject: ${subject || 'No Subject'}\nMessage: ${message}`;
+  
+  return sendViaBrevo(
+    adminEmail, 
+    `New Contact: ${subject || 'No Subject'} from ${name}`, 
+    htmlContent, 
+    textContent
+  );
+};
+
 module.exports = {
   sendOtpEmail,
   sendPasswordResetEmail,
   sendUserIdEmail,
   sendWelcomeEmail,
-  sendViaBrevo, 
+  sendViaBrevo,
+  sendContactEmail, 
 };
