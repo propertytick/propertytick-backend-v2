@@ -1072,19 +1072,18 @@ try {
     companyPincode: professionalInfo?.companyPincode || '',
     contactNumber: phone,
   });
+} else if (role === USER_ROLES.RENT) {
+  roleData = null;
 }
-      } else if (role === USER_ROLES.RENT) {
-        roleData = null;
-      }
-    } catch (err) {
-      console.error('❌ Role data creation FAILED:', err.message, err.errors);
-      await User.findByIdAndDelete(user._id);
-      return ApiResponse.error(
-        res,
-        'Profile creation failed: ' + err.message,
-        HTTP_STATUS.BAD_REQUEST
-      );
-    }
+} catch (err) {   // ✅ YEH catch block missing tha
+  console.error('❌ Role data creation FAILED:', err.message, err.errors);
+  await User.findByIdAndDelete(user._id);
+  return ApiResponse.error(
+    res,
+    'Profile creation failed: ' + err.message,
+    HTTP_STATUS.BAD_REQUEST
+  );
+}
 
     // 👇 Registration successfully complete mark karo
     user.isRegistrationComplete = true;
