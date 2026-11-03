@@ -1240,12 +1240,13 @@ const sendContactMessage = async (req, res, next) => {
     if (!name || !email || !message) {
       return ApiResponse.error(res, 'Name, Email, and Message are required', HTTP_STATUS.BAD_REQUEST);
     }
-
+	
+	
     // Email service ko call karo
     const { sendContactEmail } = require('../services/emailService');
     
-    // Yeh actually Brevo ko trigger karega
-    await sendContactEmail(name, email, phone, subject, message);
+    console.log("🔥 CONTACT EMAIL FUNCTION CALLED");
+await sendContactEmail(name, email, phone, subject, message);
 
     return ApiResponse.success(
       res, 
