@@ -1,4 +1,4 @@
-const Project = require('../models/Project'); // Agar model alag hai toh path check karein
+const Project = require('../models/Project');
 const Colonizer = require('../models/Colonizer');
 const ApiResponse = require('../utils/apiResponse');
 const { HTTP_STATUS } = require('../config/constants');
@@ -39,6 +39,19 @@ const createProject = async (req, res, next) => {
   }
 };
 
-   
+const getProjectById = async (req, res, next) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate('colonizer', 'companyName contactNumber');
 
-module.exports = { createProject };
+    if (!project) {
+      return ApiResponse.error(res, 'Project not found', HTTP_STATUS.NOT_FOUND);
+    }
+
+    return ApiResponse.success(res, { project }, 'Project fetched');
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { createProject, getProjectById };

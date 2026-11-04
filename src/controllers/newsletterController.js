@@ -19,7 +19,6 @@ const subscribe = async (req, res, next) => {
   }
 };
 
-// Admin ke liye list
 const listSubscribers = async (req, res, next) => {
   try {
     const subscribers = await Newsletter.find({ isActive: true }).sort({ createdAt: -1 });
