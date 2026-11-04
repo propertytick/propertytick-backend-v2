@@ -54,4 +54,18 @@ const getProjectById = async (req, res, next) => {
   }
 };
 
-module.exports = { createProject, getProjectById };
+const getMyProjects = async (req, res, next) => {
+  try {
+    const colonizer = await Colonizer.findOne({ user: req.user._id });
+    if (!colonizer) {
+      return ApiResponse.error(res, 'Colonizer profile not found', HTTP_STATUS.NOT_FOUND);
+    }
+
+    const projects = await Project.find({ colonizer: colonizer._id }).sort({ createdAt: -1 });
+    return ApiResponse.success(res, { projects }, 'My projects fetched');
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { createProject, getProjectById, getMyProjects };
