@@ -7,15 +7,23 @@ const projectSchema = new mongoose.Schema({
   description: { type: String, default: '' },
   projectAddress: { type: String, default: '' },
   location: {
-    city: { type: String, default: '' },
+    city: { type: String, required: true }, // City mandatory
     state: { type: String, default: '' },
-    pincode: { type: String, match: /^[1-9][0-9]{5}$/ },
+    pincode: { 
+      type: String, 
+      required: [true, 'Pincode is required'], // Pincode mandatory
+      match: [/^[1-9][0-9]{5}$/, 'Please enter a valid 6-digit Pincode'] 
+    },
     landmark: { type: String, default: '' },
   },
   totalArea: { type: Number },
   totalPlots: { type: Number },
   priceRange: { type: String, default: '' },
-  reraNumber: { type: String, default: '' },
+  reraNumber: { 
+    type: String, 
+    required: [true, 'RERA Number is required'], // RERA mandatory
+    trim: true 
+  },
   photos: [{ type: String }],
   naksha: [{ type: String }],
   contacts: [
