@@ -74,11 +74,12 @@ router.post('/superviser/send-kyc-link/:id', audit('admin_send_kyc_link', 'Super
 
 const Advertisement = require('../models/Advertisement');
 
-// Admin: Saare ads dekhna
+
 router.get('/advertisements', protect, adminOnly, async (req, res) => {
   const ads = await Advertisement.find().populate('project colonizer').sort({ createdAt: -1 });
   res.json({ success: true, data: ads });
 });
+
 
 // Admin: Ad publish karna (rate + dates)
 router.patch('/advertisements/:id/publish', protect, adminOnly, async (req, res) => {
@@ -92,9 +93,22 @@ router.patch('/advertisements/:id/publish', protect, adminOnly, async (req, res)
     { new: true }
   );
   res.json({ success: true, data: ad });
+}); // 👈 YEH CLOSING BRACKET ADD KAREIN
+
+// Admin: Ad delete karna
+router.delete('/advertisements/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const ad = await Advertisement.findByIdAndDelete(req.params.id);
+    if (!ad) {
+      return res.status(404).json({ success: false, message: 'Ad not found' });
+    }
+    res.json({ success: true, message: 'Ad deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
-// Admin: Ad submit link generate karna
+
 router.post('/advertisements/generate-link', protect, adminOnly, async (req, res) => {
   const { projectId, colonizerId } = req.body;
 
