@@ -38,6 +38,8 @@ const allowedOrigins = [
   'https://propertytick-frontend.vercel.app'
 ].filter(Boolean);
 
+
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -72,6 +74,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 6. Rate Limiter
 app.use('/api', globalLimiter);
 
+
 // ==========================================
 // 7. ROUTES (Sabse Neeche, app define hone ke baad)
 // ==========================================
@@ -79,6 +82,8 @@ app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/property`, interestRoutes);
+const advertisementRoutes = require('./routes/advertisementRoutes');
+app.use(`/api/${process.env.API_VERSION || 'v1'}/advertisements`, advertisementRoutes);
 
 // ✅ Superviser route (sahi jagah par, ek hi baar)
 app.use(`/api/${process.env.API_VERSION || 'v1'}/superviser`, superviserRoutes);

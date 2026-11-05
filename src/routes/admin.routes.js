@@ -72,6 +72,28 @@ router.post('/superviser/send-kyc-link/:id', audit('admin_send_kyc_link', 'Super
   }
 });
 
+const Advertisement = require('../models/Advertisement');
+
+// Admin: Saare ads dekhna
+router.get('/advertisements', protect, adminOnly, async (req, res) => {
+  const ads = await Advertisement.find().populate('project colonizer').sort({ createdAt: -1 });
+  res.json({ success: true, data: ads });
+});
+
+// Admin: Ad publish karna (rate + dates)
+router.patch('/advertisements/:id/publish', protect, adminOnly, async (req, res) => {
+  const { ratePerDay, startDate, endDate } = req.body;
+  const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+  const totalAmount = days * ratePerDay;
+
+  const ad = await Advertisement.findByIdAndUpdate(
+    req.params.id,
+    { ratePerDay, startDate, endDate, totalAmount, status: 'active', isActive: true },
+    { new: true }
+  );
+  res.json({ success: true, data: ad });
+});
+
 // ---- Dashboard ----
 router.get('/dashboard', audit('admin_dashboard', 'Admin'), getDashboard);
 
