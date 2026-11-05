@@ -60,22 +60,17 @@ router.get('/my', protect, async (req, res) => {
 
 
 router.get('/', async (req, res) => {
-  try {
-    const { pincode } = req.query;
-    if (!pincode) return res.json({ success: true, data: null });
+  const { pincode } = req.query;
+  const filter = {
+    status: 'active',
+    isActive: true,
+    startDate: { $lte: new Date() },
+    endDate: { $gte: new Date() },
+  };
+  if (pincode) filter.pinCodes = pincode;
 
-    const ad = await Advertisement.findOne({
-      pinCodes: pincode,
-      status: 'active',
-      isActive: true,
-      startDate: { $lte: new Date() },
-      endDate: { $gte: new Date() },
-    }).sort({ createdAt: -1 });
-
-    res.json({ success: true, data: ad });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
+  const ads = await Advertisement.find(filter).populate('project');
+  res.json({ success: true, data: ads }); 
 });
 
 
