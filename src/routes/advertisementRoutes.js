@@ -1,14 +1,26 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const path = require('path');
 const Advertisement = require('../models/Advertisement');
 const { protect } = require('../middlewares/auth');
-const upload = require('../middlewares/upload'); // agar upload middleware hai
+const upload = require('../middlewares/upload');
 
-// 1. Colonizer: Ad submit karna (photo + pin codes)
+
 router.post('/submit', upload.single('image'), async (req, res) => {
   try {
     const { token, project, colonizer, pinCodes } = req.body;
-    const imageUrl = req.file ? req.file.path : '';
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Image required' });
+    }
+
+    
+    const filename = `ad-${Date.now()}${path.extname(req.file.originalname)}`;
+    const filepath = path.join(__dirname, '../../uploads', filename);
+    fs.writeFileSync(filepath, req.file.buffer);
+
+    const imageUrl = `/uploads/${filename}`;
 
     const ad = await Advertisement.create({
       colonizer,
@@ -25,7 +37,9 @@ router.post('/submit', upload.single('image'), async (req, res) => {
   }
 });
 
-// 2. Colonizer: Apne ads dekhna (dashboard)
+
+
+
 router.get('/my', protect, async (req, res) => {
   try {
     const ads = await Advertisement.find({ colonizer: req.user._id })
@@ -37,7 +51,7 @@ router.get('/my', protect, async (req, res) => {
   }
 });
 
-// 3. User: Pin code ke hisaab se ad fetch karna (homepage)
+
 router.get('/', async (req, res) => {
   try {
     const { pincode } = req.query;
@@ -57,7 +71,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 4. Colonizer: Single ad preview
+
 router.get('/:id', protect, async (req, res) => {
   try {
     const ad = await Advertisement.findById(req.params.id).populate('project');

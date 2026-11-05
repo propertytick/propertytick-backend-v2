@@ -94,6 +94,17 @@ router.patch('/advertisements/:id/publish', protect, adminOnly, async (req, res)
   res.json({ success: true, data: ad });
 });
 
+// Admin: Ad submit link generate karna
+router.post('/advertisements/generate-link', protect, adminOnly, async (req, res) => {
+  const { projectId, colonizerId } = req.body;
+
+  const token = crypto.randomBytes(32).toString('hex');
+
+  const link = `https://propertytick.com/ad/submit?token=${token}&project=${projectId}&colonizer=${colonizerId}`;
+
+  res.json({ success: true, link });
+});
+
 // ---- Dashboard ----
 router.get('/dashboard', audit('admin_dashboard', 'Admin'), getDashboard);
 
