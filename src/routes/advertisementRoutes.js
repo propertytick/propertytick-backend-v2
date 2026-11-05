@@ -5,6 +5,7 @@ const path = require('path');
 const Advertisement = require('../models/Advertisement');
 const { protect } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
+const cloudinary = require('cloudinary').v2;
 
 
 router.post('/submit', upload.single('image'), async (req, res) => {
@@ -15,20 +16,18 @@ router.post('/submit', upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Image required' });
     }
 
-    // ✅ Uploads folder check karein, nahi hai toh banao
-    const uploadDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+   
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'ads' },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
+    });
 
-    // ✅ Sirf ek baar filename aur filepath banayein
-    const filename = `ad-${Date.now()}${path.extname(req.file.originalname)}`;
-    const filepath = path.join(uploadDir, filename);
-
-    // ✅ File save karein
-    fs.writeFileSync(filepath, req.file.buffer);
-
-    const imageUrl = `/uploads/${filename}`;
+    const imageUrl = result.secure_url;
 
     const ad = await Advertisement.create({
       colonizer,
