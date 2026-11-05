@@ -15,9 +15,17 @@ router.post('/submit', upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Image required' });
     }
 
-    
+    // ✅ Uploads folder check karein, nahi hai toh banao
+    const uploadDir = path.join(__dirname, '../../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // ✅ Sirf ek baar filename aur filepath banayein
     const filename = `ad-${Date.now()}${path.extname(req.file.originalname)}`;
-    const filepath = path.join(__dirname, '../../uploads', filename);
+    const filepath = path.join(uploadDir, filename);
+
+    // ✅ File save karein
     fs.writeFileSync(filepath, req.file.buffer);
 
     const imageUrl = `/uploads/${filename}`;
