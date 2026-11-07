@@ -1,5 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const upload = require('../middlewares/upload');
+const cloudinary = require('cloudinary').v2;
+const { protect } = require('../middlewares/auth');
+const { adminOnly } = require('../middlewares/roleCheck');
 
 const {
   getDashboard,
@@ -103,6 +107,46 @@ router.delete('/advertisements/:id', protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ad not found' });
     }
     res.json({ success: true, message: 'Ad deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Admin: Ad edit karna (photo, dates, rate)
+router.put('/advertisements/:id', protect, adminOnly, upload.single('image'), async (req, res) => {
+  try {
+    const { ratePerDay, startDate, endDate } = req.body;
+    
+    const ad = await Advertisement.findById(req.params.id);
+    if (!ad) return res.status(404).json({ success: false, message: 'Ad not found' });
+
+    // Agar nayi image aayi hai toh Cloudinary par upload karein
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'ads' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        ).end(req.file.buffer);
+      });
+      ad.image = result.secure_url;
+    }
+
+    // Dates aur rate update karein
+    if (ratePerDay) ad.ratePerDay = Number(ratePerDay);
+    if (startDate) ad.startDate = startDate;
+    if (endDate) ad.endDate = new Date(endDate);
+
+    // Total amount recalculate karein
+    if (ad.startDate && ad.endDate && ad.ratePerDay) {
+      const days = Math.ceil((new Date(ad.endDate) - new Date(ad.startDate)) / (1000 * 60 * 60 * 24));
+      ad.totalAmount = days * ad.ratePerDay;
+    }
+
+    await ad.save();
+    res.json({ success: true, message: 'Ad updated!', data: ad });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
