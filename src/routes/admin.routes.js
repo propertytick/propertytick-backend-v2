@@ -4,6 +4,7 @@ const upload = require('../middlewares/upload');
 const cloudinary = require('cloudinary').v2;
 const { protect } = require('../middlewares/auth');
 const { adminOnly } = require('../middlewares/roleCheck');
+const Advertisement = require('../models/Advertisement');
 
 const {
   getDashboard,
@@ -25,8 +26,8 @@ const {
 } = require('../controllers/adminController');
 
 const validate = require('../middlewares/validate');
-const { protect } = require('../middlewares/auth');
-const { adminOnly } = require('../middlewares/roleCheck');
+
+
 const audit = require('../middlewares/auditLogger');
 const {
   listUsersQuerySchema,
@@ -76,7 +77,7 @@ router.post('/superviser/send-kyc-link/:id', audit('admin_send_kyc_link', 'Super
   }
 });
 
-const Advertisement = require('../models/Advertisement');
+
 
 
 router.get('/advertisements', protect, adminOnly, async (req, res) => {
