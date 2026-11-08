@@ -64,11 +64,24 @@ router.get('/', async (req, res) => {
     const { pincode } = req.query;
     const now = new Date();
     
+    // Flexible filter (Agar date nahi hai toh bhi allow karo)
     const filter = {
       status: 'active',
       isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now },
+      $or: [
+        { startDate: { $exists: false } }, // Agar date nahi hai
+        { startDate: null },
+        { startDate: { $lte: now } }       // Ya aaj se pehle ki hai
+      ],
+      $and: [
+        {
+          $or: [
+            { endDate: { $exists: false } }, // Agar date nahi hai
+            { endDate: null },
+            { endDate: { $gte: now } }       // Ya aaj ke baad ki hai
+          ]
+        }
+      ]
     };
     
     if (pincode) filter.pinCodes = pincode;
