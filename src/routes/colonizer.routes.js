@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+
 const {
   listColonizers,
   getColonizerById,
@@ -18,6 +19,7 @@ router.get('/', optionalAuth, listColonizers);
 router.get('/:id/card', optionalAuth, generateColonizerCardImage);
 router.post('/:id/interest', expressProjectInterest); // 👈 YEH ROUTE ADD KIYA
 router.get('/:id', optionalAuth, getColonizerById);
+
 
 // ---- Protected Routes ----
 router.patch('/me', protect, authorize(USER_ROLES.COLONIZER), updateMyColonizer);
