@@ -64,27 +64,29 @@ router.get('/', async (req, res) => {
     const { pincode } = req.query;
     const now = new Date();
     
-    // Flexible filter (Agar date nahi hai toh bhi allow karo)
     const filter = {
       status: 'active',
       isActive: true,
       $or: [
-        { startDate: { $exists: false } }, // Agar date nahi hai
+        { startDate: { $exists: false } },
         { startDate: null },
-        { startDate: { $lte: now } }       // Ya aaj se pehle ki hai
+        { startDate: { $lte: now } }
       ],
       $and: [
         {
           $or: [
-            { endDate: { $exists: false } }, // Agar date nahi hai
+            { endDate: { $exists: false } },
             { endDate: null },
-            { endDate: { $gte: now } }       // Ya aaj ke baad ki hai
+            { endDate: { $gte: now } }
           ]
         }
       ]
     };
     
-    if (pincode) filter.pinCodes = pincode;
+  
+    if (pincode) {
+      filter.pinCodes = { $in: [pincode] }; 
+    }
 
     const ads = await Advertisement.find(filter).populate('project');
     res.json({ success: true, data: ads });

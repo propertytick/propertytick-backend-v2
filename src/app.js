@@ -30,18 +30,18 @@ app.use(helmet({
 }));
 
 // 2. CORS Setup
+// 2. CORS Setup
 const allowedOrigins = [
-  process.env.CLIENT_URL,
+  process.env.CLIENT_URL, 
   'https://www.propertytick.com',
-  'http://localhost:5173',
   'https://propertytick.com',
-  'https://propertytick-frontend.vercel.app'
+  'http://localhost:3000', 
+  'http://localhost:5173'
 ].filter(Boolean);
-
-
 
 app.use(cors({
   origin: (origin, callback) => {
+    // Agar origin nahi hai (jaise mobile apps ya postman) ya allowed list mein hai
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
