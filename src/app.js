@@ -7,6 +7,7 @@ const compression = require('compression');
 const mongoSanitize = require('express-mongo-sanitize');
 const hpp = require('hpp');
 const path = require('path');
+const projectRoutes = require('./routes/project.routes');
 
 // Routes Imports
 const routes = require('./routes');
@@ -82,10 +83,9 @@ app.use(`/api/${process.env.API_VERSION || 'v1'}`, routes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/admin`, adminRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/rent-deals`, rentDealRoutes);
 app.use(`/api/${process.env.API_VERSION || 'v1'}/property`, interestRoutes);
+app.use(`/api/${process.env.API_VERSION || 'v1'}/projects`, projectRoutes);  
 const advertisementRoutes = require('./routes/advertisementRoutes');
 app.use(`/api/${process.env.API_VERSION || 'v1'}/advertisements`, advertisementRoutes);
-
-// ✅ Superviser route (sahi jagah par, ek hi baar)
 app.use(`/api/${process.env.API_VERSION || 'v1'}/superviser`, superviserRoutes);
 
 // 8. Root Route

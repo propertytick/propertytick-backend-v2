@@ -654,36 +654,67 @@ const getProfileBySlug = async (req, res, next) => {
 // ==================== PASSWORD LOGIN ====================
 // src/controllers/authController.js
 
+// ==================== PASSWORD LOGIN (FIXED) ====================
 const login = async (req, res, next) => {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, email, userId, login: loginKey, password } = req.body;
 
-    if (!identifier || !password) {
-      return ApiResponse.error(res, 'Please provide email/userId and password', HTTP_STATUS.BAD_REQUEST);
-    }
-
-    // Check karein ki identifier email hai ya userId
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
     
-    let user;
-    if (isEmail) {
-      user = await User.findOne({ email: identifier.toLowerCase() }).select('+password');
-    } else {
-      user = await User.findOne({ userId: identifier.toLowerCase() }).select('+password');
+    const input = (identifier || email || userId || loginKey || '').trim();
+
+    if (!input || !password) {
+      return ApiResponse.error(res, 'Please enter User ID / Email and password', HTTP_STATUS.BAD_REQUEST);
     }
 
+   
+    const isEmail = input.includes('@');
+    const cleanInput = input.toLowerCase();
+
+    // Query: Email ya User ID dono me dhoondo bina kisi confusion ke
+    let user = null;
+
+    if (isEmail) {
+      user = await User.findOne({ email: cleanInput, deletedAt: null }).select('+password');
+    } else {
+      // User ID case-insensitive regex se dhoondo taki capital/small ka koi jhanjhat na rahe
+      user = await User.findOne({
+        userId: { $regex: new RegExp(`^${cleanInput}$`, 'i') },
+        deletedAt: null,
+      }).select('+password');
+    }
+
+    // Agar user nahi mila
     if (!user) {
       return ApiResponse.error(res, 'Invalid credentials', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    const isMatch = await user.comparePassword(password);
+    if (user.isBlocked) {
+      return ApiResponse.error(res, 'Account blocked. Contact support.', HTTP_STATUS.FORBIDDEN);
+    }
+
+    // Password check karein (bcrypt direct compare fallback ke sath)
+    const bcrypt = require('bcryptjs');
+    let isMatch = false;
+
+    if (user.password) {
+      if (typeof user.comparePassword === 'function') {
+        isMatch = await user.comparePassword(password);
+      } else {
+        isMatch = await bcrypt.compare(password, user.password);
+      }
+    }
+
     if (!isMatch) {
       return ApiResponse.error(res, 'Invalid credentials', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Token generate karein (jo aapke existing code mein hai)
-    const accessToken = generateAccessToken({ id: user._id, role: user.role });
-    const refreshToken = generateRefreshToken({ id: user._id });
+    // Login successful - tokens create karein
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    const payload = { id: user._id, role: user.role };
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
 
     res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
