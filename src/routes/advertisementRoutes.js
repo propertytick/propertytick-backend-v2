@@ -6,7 +6,7 @@ const Advertisement = require('../models/Advertisement');
 const { protect } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
 const cloudinary = require('cloudinary').v2;
-
+const Colonizer = require('../models/Colonizer'); // 👈 Ye import zaroori hai
 
 router.post('/submit', upload.single('image'), async (req, res) => {
   try {
@@ -16,7 +16,6 @@ router.post('/submit', upload.single('image'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'Image required' });
     }
 
-   
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         { folder: 'ads' },
@@ -29,12 +28,20 @@ router.post('/submit', upload.single('image'), async (req, res) => {
 
     const imageUrl = result.secure_url;
 
+    const colonizerDoc = await Colonizer.findById(colonizer); 
+    const colonizerPincode = colonizerDoc?.location?.pincode;
+
+    const adPinCodes = JSON.parse(pinCodes).filter(p => p.length === 6).slice(0, 10);
+    if (colonizerPincode) {
+      adPinCodes.push(colonizerPincode); 
+    }
+
     const ad = await Advertisement.create({
       colonizer,
       project,
       image: imageUrl,
       link: `/project/${project}`,
-      pinCodes: JSON.parse(pinCodes).filter(p => p.length === 6).slice(0, 10),
+      pinCodes: adPinCodes, 
       status: 'pending',
     });
 
@@ -43,8 +50,6 @@ router.post('/submit', upload.single('image'), async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
-
 
 
 router.get('/my', protect, async (req, res) => {
@@ -59,9 +64,10 @@ router.get('/my', protect, async (req, res) => {
 });
 
 
+// ✅ SINGLE ROUTE: Pincode ya City dono handle karega
 router.get('/', async (req, res) => {
   try {
-    const { pincode } = req.query;
+    const { pincode, city } = req.query;
     const now = new Date();
     
     const filter = {
@@ -83,12 +89,21 @@ router.get('/', async (req, res) => {
       ]
     };
     
-  
+    // ✅ Pincode Filter
     if (pincode) {
       filter.pinCodes = { $in: [pincode] }; 
     }
 
-    const ads = await Advertisement.find(filter).populate('project');
+    let ads = await Advertisement.find(filter).populate('project');
+
+    // ✅ City Filter (populate ke baad filter karein)
+    if (city) {
+      ads = ads.filter(ad => {
+        const projectCity = ad.project?.location?.city;
+        return projectCity && projectCity.toLowerCase() === city.toLowerCase();
+      });
+    }
+
     res.json({ success: true, data: ads });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
