@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const advertisementSchema = new mongoose.Schema({
   colonizer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Colonizer', required: true },
+  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
   image: { type: String, required: true },
   link: { type: String, required: true },
   pinCodes: [{ type: String }],
