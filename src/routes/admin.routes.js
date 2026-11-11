@@ -5,6 +5,72 @@ const cloudinary = require('cloudinary').v2;
 const { protect } = require('../middlewares/auth');
 const { adminOnly } = require('../middlewares/roleCheck');
 const Advertisement = require('../models/Advertisement');
+const User = require('../models/User');
+const Project = require('../models/Project');
+const Colonizer = require('../models/Colonizer');
+const crypto = require('crypto');
+const Superviser = require('../models/Superviser');
+const { sendEmail } = require('../services/emailService');
+const validate = require('../middlewares/validate');
+const audit = require('../middlewares/auditLogger');
+
+const { getDashboard, listUsers, ... } = require('../controllers/adminController');
+const { listUsersQuerySchema, ... } = require('../validators/adminValidator');
+
+
+router.use(protect, adminOnly);
+router.get('/colonizers/search', async (req, res) => {
+ 
+  try {
+    const { search } = req.query;
+    
+    let filter = { role: 'colonizer' };
+    
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { 'location.city': { $regex: search, $options: 'i' } },
+        { 'location.pincode': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const colonizers = await User.find(filter).select('fullName email phone location companyName shopName');
+    res.json({ success: true, data: colonizers });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. Kisi Colonizer ke saare Projects (Search ke saath)
+router.get('/colonizers/:userId/projects', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { search } = req.query;
+
+    const colonizer = await Colonizer.findOne({ user: userId });
+    if (!colonizer) {
+      return res.status(404).json({ success: false, message: 'Colonizer not found' });
+    }
+
+    let filter = { colonizer: colonizer._id };
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { 'location.city': { $regex: search, $options: 'i' } },
+        { 'location.pincode': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const projects = await Project.find(filter).select('title location city pincode');
+    res.json({ success: true, data: projects });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 
 const {
   getDashboard,
@@ -25,10 +91,10 @@ const {
   deleteSuperviser,             
 } = require('../controllers/adminController');
 
-const validate = require('../middlewares/validate');
 
 
-const audit = require('../middlewares/auditLogger');
+
+
 const {
   listUsersQuerySchema,
   updateFeesSchema,
@@ -37,12 +103,11 @@ const {
   promoteUserSchema,
 } = require('../validators/adminValidator');
 
-const crypto = require('crypto');
+
 const Superviser = require('../models/Superviser');
 const { sendEmail } = require('../services/emailService');
 
-// All admin routes require authentication + admin role
-router.use(protect, adminOnly);
+
 
 // ---- Supervisers (Partners) ----
 router.get('/supervisers', audit('admin_list_supervisers', 'Superviser'), listSupervisers);

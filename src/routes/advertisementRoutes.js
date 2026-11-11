@@ -28,8 +28,8 @@ router.post('/submit', upload.single('image'), async (req, res) => {
 
     const imageUrl = result.secure_url;
 
-    const colonizerDoc = await Colonizer.findOne({ user: colonizer });
-const colonizerPincode = colonizerDoc?.location?.pincode;
+    const colonizerDoc = await Colonizer.findById(colonizer); 
+    const colonizerPincode = colonizerDoc?.location?.pincode;
 
     const adPinCodes = JSON.parse(pinCodes).filter(p => p.length === 6).slice(0, 10);
     if (colonizerPincode) {
