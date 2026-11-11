@@ -86,14 +86,10 @@ const {
   listAuditLogs,
   recalculateAllRanks,
   deleteUser,
-  listSupervisers,              
-  updateSuperviserStatus,       
-  deleteSuperviser,             
+  listSupervisers,
+  updateSuperviserStatus,
+  deleteSuperviser,
 } = require('../controllers/adminController');
-
-
-
-
 
 const {
   listUsersQuerySchema,
