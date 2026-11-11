@@ -14,8 +14,7 @@ const { sendEmail } = require('../services/emailService');
 const validate = require('../middlewares/validate');
 const audit = require('../middlewares/auditLogger');
 
-const { getDashboard, listUsers, ... } = require('../controllers/adminController');
-const { listUsersQuerySchema, ... } = require('../validators/adminValidator');
+
 
 
 router.use(protect, adminOnly);
@@ -98,11 +97,6 @@ const {
   blockUserSchema,
   promoteUserSchema,
 } = require('../validators/adminValidator');
-
-
-const Superviser = require('../models/Superviser');
-const { sendEmail } = require('../services/emailService');
-
 
 
 // ---- Supervisers (Partners) ----
