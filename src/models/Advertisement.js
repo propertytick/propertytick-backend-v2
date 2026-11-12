@@ -28,7 +28,7 @@ const advertisementSchema = new mongoose.Schema({
   startDate: { type: Date },
   endDate: { type: Date },
   totalAmount: { type: Number, default: 0 },
-
+ totalDays: { type: Number, default: 0 },
   // 👇 Ad ka status
   status: { 
     type: String, 

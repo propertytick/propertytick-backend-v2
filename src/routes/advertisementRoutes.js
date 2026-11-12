@@ -147,4 +147,37 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
+// ✅ ADMIN KE LIYE PUBLISH ROUTE
+router.patch('/:id/publish', protect, async (req, res) => {
+  try {
+    const { ratePerDay, startDate, endDate, discountPercent, totalAmount, totalDays } = req.body;
+    
+    // Check karo ki user admin hai ya nahi (agar aapke paas admin check hai)
+    // if (req.user.role !== 'admin') return res.status(403).json({ message: 'Not authorized' });
+
+    const updatedAd = await Advertisement.findByIdAndUpdate(
+      req.params.id, 
+      { 
+        ratePerDay, 
+        startDate, 
+        endDate, 
+        discountText: discountPercent > 0 ? `${discountPercent}% OFF` : '',
+        totalAmount, 
+        totalDays,
+        status: 'active',
+        isActive: true
+      }, 
+      { new: true }
+    );
+    
+    if (!updatedAd) {
+      return res.status(404).json({ success: false, message: 'Ad not found' });
+    }
+
+    res.json({ success: true, data: updatedAd });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
