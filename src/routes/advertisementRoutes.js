@@ -10,10 +10,15 @@ const Colonizer = require('../models/Colonizer'); // 👈 Ye import zaroori hai
 
 router.post('/submit', upload.single('image'), async (req, res) => {
   try {
-    const { token, project, colonizer, pinCodes } = req.body;
+    // Frontend se data receive karo
+    const { project, property, colonizer, pinCodes, adType, link } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'Image required' });
+    }
+
+    if (!colonizer) {
+      return res.status(400).json({ success: false, message: 'Colonizer/User ID is required' });
     }
 
     const result = await new Promise((resolve, reject) => {
@@ -28,25 +33,43 @@ router.post('/submit', upload.single('image'), async (req, res) => {
 
     const imageUrl = result.secure_url;
 
-    const colonizerDoc = await Colonizer.findById(colonizer); 
-    const colonizerPincode = colonizerDoc?.location?.pincode;
-
-    const adPinCodes = JSON.parse(pinCodes).filter(p => p.length === 6).slice(0, 10);
-    if (colonizerPincode) {
-      adPinCodes.push(colonizerPincode); 
+    // Pincode nikalne ka logic (Colonizer ya Broker dono handle karega)
+    let ownerPincode = null;
+    
+    // 1. Pehle Colonizer me check karo
+    const colonizerDoc = await Colonizer.findById(colonizer).catch(() => null);
+    if (colonizerDoc) {
+      ownerPincode = colonizerDoc?.location?.pincode;
+    } else {
+      // 2. Agar Colonizer nahi mila, toh User (Broker) me check karo
+      const User = require('../models/User');
+      const userDoc = await User.findById(colonizer).catch(() => null);
+      if (userDoc) {
+        ownerPincode = userDoc?.pincode;
+      }
     }
 
+    // Pincodes array banayo
+    const adPinCodes = JSON.parse(pinCodes || "[]").filter(p => p.length === 6).slice(0, 10);
+    if (ownerPincode && !adPinCodes.includes(ownerPincode)) {
+      adPinCodes.push(ownerPincode); 
+    }
+
+    // Database me ad create karo
     const ad = await Advertisement.create({
+      adType: adType || (project ? 'upcoming_project' : 'sell_property'),
       colonizer,
-      project,
+      project: project || undefined,
+      property: property || undefined,
       image: imageUrl,
-      link: `/project/${project}`,
+      link: link || '/dashboard',
       pinCodes: adPinCodes, 
       status: 'pending',
     });
 
     res.json({ success: true, message: 'Ad submitted!', data: ad });
   } catch (err) {
+    console.error("Submit Ad Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
