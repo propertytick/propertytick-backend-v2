@@ -135,6 +135,7 @@ router.get('/', async (req, res) => {
 
 
 // ✅ 1. /home-ads wala route Upar rakho
+// ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
 router.get('/home-ads', async (req, res) => {
   try {
     const { pincode } = req.query;
@@ -151,11 +152,12 @@ router.get('/home-ads', async (req, res) => {
       filter.pinCodes = { $in: [pincode] };
     }
 
+    // 👇 Yahan projectName ki jagah title aur projectAddress add kiya hai
     const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' }).populate('property', 'title location');
     const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' }).populate('property', 'title location');
-    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' }).populate('project', 'projectName location');
+    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' })
+      .populate('project', 'title projectAddress location.city location.landmark'); 
 
-    // Kharab IDs ko filter out karo
     const validSellAds = sellAds.filter(ad => ad.property !== null);
     const validRentAds = rentAds.filter(ad => ad.property !== null);
     const validProjects = upcomingProjects.filter(ad => ad.project !== null);
