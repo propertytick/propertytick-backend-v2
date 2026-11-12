@@ -180,4 +180,41 @@ router.patch('/:id/publish', protect, async (req, res) => {
   }
 });
 
+// ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
+router.get('/home-ads', async (req, res) => {
+  try {
+    const { pincode } = req.query;
+    const now = new Date();
+
+    // Sirf active aur valid date wale ads
+    const filter = {
+      status: 'active',
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now }
+    };
+
+    // Agar user ka pincode hai, toh usi pincode wale ads dikhao
+    if (pincode) {
+      filter.pinCodes = { $in: [pincode] };
+    }
+
+    // Alag-alag categories ke liye ads fetch karo
+    const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' }).populate('property');
+    const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' }).populate('property');
+    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' }).populate('project');
+
+    res.json({
+      success: true,
+      data: {
+        sellAds,
+        rentAds,
+        upcomingProjects
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
