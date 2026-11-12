@@ -134,6 +134,47 @@ router.get('/', async (req, res) => {
 });
 
 
+// ✅ 1. /home-ads wala route Upar rakho
+router.get('/home-ads', async (req, res) => {
+  try {
+    const { pincode } = req.query;
+    const now = new Date();
+
+    const filter = {
+      status: 'active',
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now }
+    };
+
+    if (pincode) {
+      filter.pinCodes = { $in: [pincode] };
+    }
+
+    const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' }).populate('property', 'title location');
+    const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' }).populate('property', 'title location');
+    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' }).populate('project', 'projectName location');
+
+    // Kharab IDs ko filter out karo
+    const validSellAds = sellAds.filter(ad => ad.property !== null);
+    const validRentAds = rentAds.filter(ad => ad.property !== null);
+    const validProjects = upcomingProjects.filter(ad => ad.project !== null);
+
+    res.json({
+      success: true,
+      data: {
+        sellAds: validSellAds,
+        rentAds: validRentAds,
+        upcomingProjects: validProjects
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ✅ 2. Uske NEECHE /:id wala route rakho
+// ✅ 2. Uske NEECHE /:id wala route rakho
 router.get('/:id', protect, async (req, res) => {
   try {
     const ad = await Advertisement.findById(req.params.id).populate('project');
@@ -180,41 +221,6 @@ router.patch('/:id/publish', protect, async (req, res) => {
   }
 });
 
-// ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
-router.get('/home-ads', async (req, res) => {
-  try {
-    const { pincode } = req.query;
-    const now = new Date();
 
-    // Sirf active aur valid date wale ads
-    const filter = {
-      status: 'active',
-      isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now }
-    };
-
-    // Agar user ka pincode hai, toh usi pincode wale ads dikhao
-    if (pincode) {
-      filter.pinCodes = { $in: [pincode] };
-    }
-
-    // Alag-alag categories ke liye ads fetch karo
-    const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' }).populate('property');
-    const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' }).populate('property');
-    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' }).populate('project');
-
-    res.json({
-      success: true,
-      data: {
-        sellAds,
-        rentAds,
-        upcomingProjects
-      }
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
 
 module.exports = router;
