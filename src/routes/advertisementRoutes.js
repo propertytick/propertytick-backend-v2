@@ -161,7 +161,7 @@ router.patch('/:id/publish', protect, async (req, res) => {
         ratePerDay, 
         startDate, 
         endDate, 
-        discountText: discountPercent > 0 ? `${discountPercent}% OFF` : '',
+        discountText: discountPercent ? `${discountPercent}% OFF` : '0%', 
         totalAmount, 
         totalDays,
         status: 'active',
