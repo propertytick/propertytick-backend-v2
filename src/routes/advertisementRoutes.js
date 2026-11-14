@@ -134,30 +134,38 @@ router.get('/', async (req, res) => {
 });
 
 
-// ✅ 1. /home-ads wala route Upar rakho
-// ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
-// ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
+
 router.get('/home-ads', async (req, res) => {
   try {
     const { pincode } = req.query;
     const now = new Date();
 
+    // ✅ Filter: Pincode match aur Dates check
     const filter = {
-      // status: 'active',
-      // isActive: true,
-      // startDate: { $lte: now },
-      // endDate: { $gte: now }
+      status: 'active',
+      isActive: true,
+      startDate: { $lte: now },
+      endDate: { $gte: now }
     };
 
-    // ✅ Agar user ne apna pincode diya hai, toh usi pincode wale ads dhundho
     if (pincode) {
       filter.pinCodes = { $in: [pincode] };
     }
 
-    const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' }).populate('property', 'title location');
-    const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' }).populate('property', 'title location');
-    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' }).populate('project', 'title projectAddress location.city location.landmark');
+    // ✅ FIX: Populate safe tarike se
+    const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' })
+      .populate('property', 'title location')
+      .catch(() => []); // Agar property delete hai, toh crash na kare
 
+    const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' })
+      .populate('property', 'title location')
+      .catch(() => []);
+
+    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' })
+      .populate('project', 'title location.city location.landmark') // ✅ Project ki detail
+      .catch(() => []);
+
+    // ✅ FIX: Agar koi ad ka project/property delete ho gaya hai (null), toh us ad ko hata do
     const validSellAds = sellAds.filter(ad => ad.property !== null);
     const validRentAds = rentAds.filter(ad => ad.property !== null);
     const validProjects = upcomingProjects.filter(ad => ad.project !== null);
@@ -171,6 +179,7 @@ router.get('/home-ads', async (req, res) => {
       }
     });
   } catch (err) {
+    console.error("Home Ads Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
