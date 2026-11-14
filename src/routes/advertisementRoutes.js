@@ -136,6 +136,7 @@ router.get('/', async (req, res) => {
 
 // ✅ 1. /home-ads wala route Upar rakho
 // ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
+// ✅ HOMEPAGE KE LIYE ROUTE (Pincode ke hisaab se ads)
 router.get('/home-ads', async (req, res) => {
   try {
     const { pincode } = req.query;
@@ -148,15 +149,14 @@ router.get('/home-ads', async (req, res) => {
       endDate: { $gte: now }
     };
 
+    // ✅ Agar user ne apna pincode diya hai, toh usi pincode wale ads dhundho
     if (pincode) {
       filter.pinCodes = { $in: [pincode] };
     }
 
-    // 👇 Yahan projectName ki jagah title aur projectAddress add kiya hai
     const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' }).populate('property', 'title location');
     const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' }).populate('property', 'title location');
-    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' })
-      .populate('project', 'title projectAddress location.city location.landmark'); 
+    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' }).populate('project', 'title projectAddress location.city location.landmark');
 
     const validSellAds = sellAds.filter(ad => ad.property !== null);
     const validRentAds = rentAds.filter(ad => ad.property !== null);
@@ -175,8 +175,7 @@ router.get('/home-ads', async (req, res) => {
   }
 });
 
-// ✅ 2. Uske NEECHE /:id wala route rakho
-// ✅ 2. Uske NEECHE /:id wala route rakho
+
 router.get('/:id', protect, async (req, res) => {
   try {
     const ad = await Advertisement.findById(req.params.id).populate('project');
