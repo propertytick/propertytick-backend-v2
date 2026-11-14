@@ -143,10 +143,10 @@ router.get('/home-ads', async (req, res) => {
     const now = new Date();
 
     const filter = {
-      status: 'active',
-      isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now }
+      // status: 'active',
+      // isActive: true,
+      // startDate: { $lte: now },
+      // endDate: { $gte: now }
     };
 
     // ✅ Agar user ne apna pincode diya hai, toh usi pincode wale ads dhundho
