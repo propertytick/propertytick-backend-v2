@@ -169,14 +169,15 @@ router.delete('/advertisements/:id', protect, adminOnly, async (req, res) => {
 });
 
 // Admin: Ad edit karna (photo, dates, rate)
+// Admin: Ad edit karna (photo, dates, rate, discount)
 router.put('/advertisements/:id', protect, adminOnly, upload.single('image'), async (req, res) => {
   try {
-    const { ratePerDay, startDate, endDate } = req.body;
+    const { ratePerDay, startDate, endDate, discountPercent } = req.body;
     
     const ad = await Advertisement.findById(req.params.id);
     if (!ad) return res.status(404).json({ success: false, message: 'Ad not found' });
 
-    // Agar nayi image aayi hai toh Cloudinary par upload karein
+    // Photo update
     if (req.file) {
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
@@ -190,20 +191,29 @@ router.put('/advertisements/:id', protect, adminOnly, upload.single('image'), as
       ad.image = result.secure_url;
     }
 
-    // Dates aur rate update karein
-    if (ratePerDay) ad.ratePerDay = Number(ratePerDay);
-    if (startDate) ad.startDate = startDate;
-    if (endDate) ad.endDate = new Date(endDate);
+    // ✅ Naya Logic: Rate, Dates, Discount aur Total Calculate karo
+    const rate = Number(ratePerDay) || ad.ratePerDay || 0;
+    const discount = Number(discountPercent) || 0;
+    const start = startDate ? new Date(startDate) : ad.startDate;
+    const end = endDate ? new Date(endDate) : ad.endDate;
+    
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) || 1;
+    const discountAmountPerDay = (rate * discount) / 100;
+    const finalRatePerDay = rate - discountAmountPerDay;
+    const totalAmount = finalRatePerDay * totalDays;
 
-    // Total amount recalculate karein
-    if (ad.startDate && ad.endDate && ad.ratePerDay) {
-      const days = Math.ceil((new Date(ad.endDate) - new Date(ad.startDate)) / (1000 * 60 * 60 * 24));
-      ad.totalAmount = days * ad.ratePerDay;
-    }
+    // Update karo
+    ad.ratePerDay = rate;
+    ad.startDate = start;
+    ad.endDate = end;
+    ad.discountText = discount > 0 ? `${discount}% OFF` : '0%';
+    ad.totalDays = totalDays;
+    ad.totalAmount = totalAmount;
 
     await ad.save();
     res.json({ success: true, message: 'Ad updated!', data: ad });
   } catch (err) {
+    console.error("Admin Edit Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
