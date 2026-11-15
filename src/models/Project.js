@@ -11,10 +11,11 @@ const projectSchema = new mongoose.Schema({
   
   // 👇 Location: Ab ek single pincode nahi, multiple pincodes ka array hoga
   location: {
-    city: { type: String, required: true },
-    state: { type: String, default: '' },
-    landmark: { type: String, default: '' },
-  },
+  city: { type: String, required: true },
+  state: { type: String, default: '' },
+  landmark: { type: String, default: '' },
+  pincode: { type: String, match: /^[1-9][0-9]{5}$/ }, 
+},
   
   // 👇 NAYA FIELD: 10 Pincode Targeting
   // User 10 pincodes daal sakta hai, jahan ad dikhana hai
