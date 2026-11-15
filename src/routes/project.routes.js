@@ -65,4 +65,32 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+const upload = require('../middlewares/upload'); // Agar middleware hai
+const cloudinary = require('cloudinary').v2;
+
+// ✅ Image Upload Route (Frontend se file lega aur Cloudinary pe bhejega)
+router.post('/upload-image', protect, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Image file required' });
+    }
+
+    // Cloudinary pe upload karo
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'projects' },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
+    });
+
+    res.json({ success: true, url: result.secure_url });
+  } catch (err) {
+    console.error('Upload Error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
