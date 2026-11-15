@@ -140,32 +140,35 @@ router.get('/home-ads', async (req, res) => {
     const { pincode } = req.query;
     const now = new Date();
 
-    // ✅ Filter: Pincode match aur Dates check
-    const filter = {
+    // ✅ 1. Base Filter: Sirf Active aur valid date wale ads (Aapki requirement)
+    const baseFilter = {
       status: 'active',
       isActive: true,
-      startDate: { $lte: now },
-      endDate: { $gte: now }
+      startDate: { $lte: now }, // Start date aaj se pehle ya aaj ki ho
+      endDate: { $gte: now }    // End date aaj ke baad ki ho
     };
 
+    // ✅ 2. Agar User login hai (pincode aaya hai), toh pincode filter lagao
     if (pincode) {
-      filter.pinCodes = { $in: [pincode] };
+      baseFilter.pinCodes = { $in: [pincode] };
     }
 
-    // ✅ FIX: Populate safe tarike se
-    const sellAds = await Advertisement.find({ ...filter, adType: 'sell_property' })
-      .populate('property', 'title location')
-      .catch(() => []); // Agar property delete hai, toh crash na kare
-
-    const rentAds = await Advertisement.find({ ...filter, adType: 'rent_property' })
+    // ✅ 3. Sell Ads (Neeche ke liye)
+    const sellAds = await Advertisement.find({ ...baseFilter, adType: 'sell_property' })
       .populate('property', 'title location')
       .catch(() => []);
 
-    const upcomingProjects = await Advertisement.find({ ...filter, adType: 'upcoming_project' })
-      .populate('project', 'title location.city location.landmark') // ✅ Project ki detail
+    // ✅ 4. Rent Ads (Neeche ke liye)
+    const rentAds = await Advertisement.find({ ...baseFilter, adType: 'rent_property' })
+      .populate('property', 'title location')
       .catch(() => []);
 
-    // ✅ FIX: Agar koi ad ka project/property delete ho gaya hai (null), toh us ad ko hata do
+    // ✅ 5. Upcoming Projects (Carousel ke liye)
+    const upcomingProjects = await Advertisement.find({ ...baseFilter, adType: 'upcoming_project' })
+      .populate('project', 'title location.city location.landmark')
+      .catch(() => []);
+
+    // ✅ 6. Delete hue projects/properties wale ads hatao
     const validSellAds = sellAds.filter(ad => ad.property !== null);
     const validRentAds = rentAds.filter(ad => ad.property !== null);
     const validProjects = upcomingProjects.filter(ad => ad.project !== null);
