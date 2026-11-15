@@ -9,6 +9,9 @@ router.get('/my', protect, getMyProjects);
 router.get('/:id', getProjectById);
 
 
+
+const Colonizer = require('../models/Colonizer');
+
 router.put('/:id', protect, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -16,8 +19,15 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    // Check karo ki project usi user (colonizer) ka hai
-    if (project.colonizer.toString() !== req.user._id.toString()) {
+    // ✅ Pehle Colonizer dhundho jo is User se juda ho
+    const colonizerDoc = await Colonizer.findOne({ user: req.user._id });
+    
+    if (!colonizerDoc) {
+      return res.status(403).json({ success: false, message: 'Colonizer profile not found' });
+    }
+
+    // ✅ Ab project ke colonizer ID se match karo
+    if (project.colonizer.toString() !== colonizerDoc._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
