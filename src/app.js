@@ -40,14 +40,9 @@ const allowedOrigins = [
   'http://localhost:5173'
 ].filter(Boolean);
 
+// 2. CORS Setup
 app.use(cors({
-  origin: (origin, callback) => {
-    // Agar origin nahi hai (jaise mobile apps ya postman) ya allowed list mein hai
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
+  origin: true, 
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
