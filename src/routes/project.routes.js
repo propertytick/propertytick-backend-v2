@@ -8,7 +8,34 @@ router.get('/my', protect, getMyProjects);
 
 router.get('/:id', getProjectById);
 
-// ✅ Project Delete Route
+
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    // Check karo ki project usi user (colonizer) ka hai
+    if (project.colonizer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Update karo
+    const updatedProject = await Project.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+
+    res.json({ success: true, data: { project: updatedProject } });
+  } catch (err) {
+    console.error("Project Update Error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 router.delete('/:id', protect, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
