@@ -93,4 +93,31 @@ router.post('/upload-image', protect, upload.single('image'), async (req, res) =
   }
 });
 
+
+router.get('/search', async (req, res) => {
+  try {
+    const { pincode, city, q } = req.query;
+    const filter = {};
+
+    
+    const searchPincode = pincode || (q && /^\d{6}$/.test(q) ? q : null);
+    if (searchPincode) {
+      filter['location.pincode'] = searchPincode;
+    } else if (city) {
+      filter['location.city'] = { $regex: city, $options: 'i' };
+    } else if (q) {
+      filter.$or = [
+        { title: { $regex: q, $options: 'i' } },
+        { 'location.city': { $regex: q, $options: 'i' } },
+        { 'location.landmark': { $regex: q, $options: 'i' } },
+      ];
+    }
+
+    const projects = await Project.find(filter).limit(50);
+    res.json({ success: true, data: projects });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;

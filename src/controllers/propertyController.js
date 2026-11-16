@@ -138,6 +138,12 @@ if (propertyType === 'plot') {
         filter.propertyType = lowerValue;
       }
     }
+	
+	
+if (finalPurpose === 'projects') {
+  
+  return ApiResponse.paginated(res, [], page, limit, 0, 'Properties fetched');
+}
 
     if (city) filter['location.city'] = { $regex: city, $options: 'i' };
     if (state) filter['location.state'] = state;
