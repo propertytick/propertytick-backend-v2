@@ -18,22 +18,25 @@ exports.getHomeAds = async (req, res) => {
       filter.pincodes = pincode; // Pincode match
     }
 
-    // 1. Top Premium Banner (Sabse zyada payment wale)
-    const premiumAds = await Project.find({ ...filter, adType: 'premium_banner' }).limit(3);
+    const premiumAdsRaw = await Project.find({ ...filter, adType: 'premium_banner' }).limit(3);
+    const paidProjectsRaw = await Project.find({ ...filter, adType: 'paid_project' }).limit(10);
+    const upcomingProjectsRaw = await Project.find({ ...filter, adType: 'upcoming_project' }).limit(10);
 
-    // 2. Paid Projects (Niche wale section ke liye)
-    const paidProjects = await Project.find({ ...filter, adType: 'paid_project' }).limit(10);
-
-    // 3. Upcoming Projects (3 Din Free Trial)
-    const upcomingProjects = await Project.find({ ...filter, adType: 'upcoming_project' }).limit(10);
+    // Format data for frontend
+    const formatData = (arr) => arr.map(item => ({
+      _id: item._id,
+      image: item.photos?.[0] || 'https://via.placeholder.com/400',
+      title: item.title,
+      project: item, 
+    }));
 
     res.status(200).json({
       success: true,
       data: {
-        premiumAds,
-        paidProjects,
-        upcomingProjects
-      }
+        premiumAds: formatData(premiumAdsRaw),
+        paidProjects: formatData(paidProjectsRaw),
+        upcomingProjects: formatData(upcomingProjectsRaw),
+        }
     });
 
   } catch (error) {

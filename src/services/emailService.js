@@ -251,7 +251,7 @@ const sendWelcomeEmail = async (toEmail, userName, role) => {
   const roleLabels = {
     broker: 'Property Dealer',
     advocate: 'Advocate',
-    colonizer: 'Colonizer',
+    colonizer: 'Real Estate',
     buyer: 'Buyer',
     typist: 'Typist',
     stamp_vendor: 'Stamp Vendor',
