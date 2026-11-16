@@ -14,17 +14,35 @@ const expressInterest = async (req, res, next) => {
   try {
     const { propertyId } = req.params;
     
-    // Property dhundho with owner details
-    const property = await Property.findById(propertyId)
-      .populate('listedBy', 'fullName email phone location city pinCode')
-      .populate('owner', 'fullName email phone location city pinCode');
+    // ✅ Pehle Property me dhundho
+    let property = await Property.findById(propertyId)
+      .populate('listedBy', 'fullName email phone')
+      .populate('owner', 'fullName email phone');
 
+    // ✅ Agar Property nahi mili, toh Project me dhundho
     if (!property) {
-      return ApiResponse.error(res, 'Property not found', HTTP_STATUS.NOT_FOUND);
+      const Project = require('../models/Project');
+      property = await Project.findById(propertyId)
+        .populate('colonizer', 'fullName email phone'); // Colonizer ki detail
+      
+      if (!property) {
+        return ApiResponse.error(res, 'Property or Project not found', HTTP_STATUS.NOT_FOUND);
+      }
     }
 
-    // Property owner determine karo (listedBy ya owner)
-    const propertyOwner = property.listedBy || property.owner;
+    
+        // ✅ Agar Project hai, toh owner nikalne ka alag tarika
+    let propertyOwner;
+    if (property.colonizer) {
+      // Project hai
+      const Colonizer = require('../models/Colonizer');
+      const colonizerDoc = await Colonizer.findById(property.colonizer).populate('user', 'fullName email phone');
+      propertyOwner = colonizerDoc?.user;
+    } else {
+      // Property hai
+      propertyOwner = property.listedBy || property.owner;
+    }
+
     if (!propertyOwner) {
       return ApiResponse.error(res, 'Property owner not found', HTTP_STATUS.NOT_FOUND);
     }
@@ -93,7 +111,8 @@ const expressInterest = async (req, res, next) => {
     // ========================================
     // 2. PROPERTY OWNER KO EMAIL BHEJO
     // ========================================
-    const listedPrice = property.price?.amount || property.price || 0;
+    
+	const listedPrice = property.priceRange || property.price?.amount || property.price || 0;
     const offerHighlight = offeredPrice 
       ? `<div style="background:#fef3c7;padding:16px;border-radius:8px;margin:16px 0;border-left:4px solid #f59e0b;">
            <p style="margin:0;font-size:14px;color:#92400e;"><strong>💰 User's Offer Price:</strong></p>
