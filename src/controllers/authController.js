@@ -26,7 +26,7 @@ const buildSlug = (name, suffix) => {
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  const random = Math.random().toString(36).slice(-4);   // 👈 YEH LINE ADD KARO
+  const random = Math.random().toString(36).slice(-4);   
   return `${base}-${suffix.slice(-4)}-${random}`;
 };
 
@@ -39,7 +39,7 @@ const sendOtp = async (req, res, next) => {
     const { phone, purpose, fullName, email, userId, pincode, password, referralCode } = req.body;
     
     if (purpose === 'register') {
-      // Meta data ke saath OTP bhejein
+
       await createAndSendOtp(phone, 'registration', { 
         fullName, email, userId, password, pincode, referralCode 
       });
@@ -1143,21 +1143,22 @@ await Notification.create({
   type: 'registration',
   link: '/dashboard'
 });
-// ... existing code ...
+
+
+const displayRole = role === 'colonizer' ? 'Real Estate' : role;
 	    
 		console.log("SENDING COMPANY EMAIL FOR:", email, phone, role);
     try {
           await sendViaBrevo(
-      'info.propertytick@gmail.com', // Company ki email
-      `New User Registered: ${fullName} (${role})`,
-      `<h2>New User Registered</h2>
-       <p><strong>Name:</strong> ${fullName}</p>
-       <p><strong>Email:</strong> ${email}</p>
-       <p><strong>Phone:</strong> ${phone}</p>
-       <p><strong>Role:</strong> ${role}</p>
-       <p><strong>User ID:</strong> ${userId}</p>`,
-      `New User Registered: ${fullName} (${role})` // 
-    );
+    'info.propertytick@gmail.com',
+    `New User Registered: ${fullName} (${displayRole})`,
+    `<h2>New User Registered</h2>
+     <p><strong>Name:</strong> ${fullName}</p>
+     <p><strong>Email:</strong> ${email}</p>
+     <p><strong>Phone:</strong> ${phone}</p>
+     <p><strong>Role:</strong> ${displayRole}</p>`, 
+    `New User Registered: ${fullName} (${displayRole})`
+  );
     } catch (emailError) {
       console.error("Admin notification email failed:", emailError.message);
     }
