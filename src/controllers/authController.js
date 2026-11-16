@@ -651,39 +651,36 @@ const getProfileBySlug = async (req, res, next) => {
   }
 };
 
-// ==================== PASSWORD LOGIN ====================
-// src/controllers/authController.js
-
 // ==================== PASSWORD LOGIN (FIXED) ====================
 const login = async (req, res, next) => {
   try {
     const { identifier, email, userId, login: loginKey, password } = req.body;
 
-    
     const input = (identifier || email || userId || loginKey || '').trim();
 
     if (!input || !password) {
-      return ApiResponse.error(res, 'Please enter User ID / Email and password', HTTP_STATUS.BAD_REQUEST);
+      return ApiResponse.error(res, 'Please enter User ID / Email / Mobile and password', HTTP_STATUS.BAD_REQUEST);
     }
 
-   
     const isEmail = input.includes('@');
+    const isMobile = /^\d{10}$/.test(input); 
     const cleanInput = input.toLowerCase();
 
-    // Query: Email ya User ID dono me dhoondo bina kisi confusion ke
     let user = null;
 
     if (isEmail) {
       user = await User.findOne({ email: cleanInput, deletedAt: null }).select('+password');
-    } else {
-      // User ID case-insensitive regex se dhoondo taki capital/small ka koi jhanjhat na rahe
+    } 
+    else if (isMobile) {
+      user = await User.findOne({ phone: input, deletedAt: null }).select('+password');
+    } 
+    else {
       user = await User.findOne({
         userId: { $regex: new RegExp(`^${cleanInput}$`, 'i') },
         deletedAt: null,
       }).select('+password');
     }
 
-    // Agar user nahi mila
     if (!user) {
       return ApiResponse.error(res, 'Invalid credentials', HTTP_STATUS.UNAUTHORIZED);
     }
@@ -692,7 +689,6 @@ const login = async (req, res, next) => {
       return ApiResponse.error(res, 'Account blocked. Contact support.', HTTP_STATUS.FORBIDDEN);
     }
 
-    // Password check karein (bcrypt direct compare fallback ke sath)
     const bcrypt = require('bcryptjs');
     let isMatch = false;
 
@@ -708,7 +704,6 @@ const login = async (req, res, next) => {
       return ApiResponse.error(res, 'Invalid credentials', HTTP_STATUS.UNAUTHORIZED);
     }
 
-    // Login successful - tokens create karein
     user.lastLoginAt = new Date();
     await user.save({ validateBeforeSave: false });
 
@@ -723,6 +718,7 @@ const login = async (req, res, next) => {
     next(err);
   }
 };
+
 
 // ==================== FORGOT PASSWORD ====================
 const forgotPassword = async (req, res, next) => {
@@ -752,7 +748,7 @@ const forgotPassword = async (req, res, next) => {
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save({ validateBeforeSave: false });
 
-    // Reset URL banaoF
+    // Reset URL banao
     const resetUrl = `https://www.propertytick.com/reset-password?token=${resetToken}`;
 
     // Email bhejo
@@ -781,6 +777,8 @@ const forgotPassword = async (req, res, next) => {
     next(err);
   }
 };
+
+// ==================== RESET PASSWORD ====================
 
 // ==================== RESET PASSWORD ====================
 const resetPassword = async (req, res, next) => {
