@@ -31,8 +31,14 @@ const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
 /**
  * Send OTP via MSG91 (India)
  */
+/**
+ * Send OTP via APITxT
+ */
+/**
+ * Send OTP via APITxT
+ */
 const sendOtpSms = async (phone, otp) => {
-  // 👇 YEH NAYA BLOCK ADD KAREIN
+  // 👇 DEMO MODE (Same as before)
   if (IS_DEMO_MODE) {
     logger.info(`🧪 [DEMO MODE] OTP for ${phone}: ${otp}`);
     return { success: true, dev: true };
@@ -44,22 +50,23 @@ const sendOtpSms = async (phone, otp) => {
   }
 
   try {
-    const url = 'https://control.msg91.com/api/v5/otp';
     const response = await axios.post(
-      url,
+      'https://apitxt.com/api/sendOTP', 
+      new URLSearchParams({
+        authkey: process.env.APITXT_KEY, // ✅ SAHI TARIKA
+        mobile: phone,                    
+        otp: otp,
+      }),
       {
-        template_id: process.env.MSG91_TEMPLATE_ID,
-        mobile: `91${phone}`,
-        authkey: process.env.MSG91_AUTH_KEY,
-        otp,
-      },
-      { timeout: 8000 }
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 8000,
+      }
     );
 
-    if (response.data?.type === 'success') {
-      return { success: true };
+    if (response.data?.status === 'success') {
+      return { success: true, requestId: response.data.data?.request_id };
     }
-    throw new Error(response.data?.message || 'MSG91 send failed');
+    throw new Error(response.data?.message || 'APITxT send failed');
   } catch (err) {
     logger.error(`OTP SMS failed for ${phone}: ${err.message}`);
     throw new Error('OTP send failed. Please try again.');
