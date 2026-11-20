@@ -53,8 +53,8 @@ const sendOtpSms = async (phone, otp) => {
     const response = await axios.post(
       'https://apitxt.com/api/sendOTP', 
       new URLSearchParams({
-        authkey: process.env.APITXT_KEY, // ✅ SAHI TARIKA
-        mobile: phone,                    
+        authkey: process.env.APITXT_KEY, 
+        mobile: `91${phone}`,                    
         otp: otp,
       }),
       {
