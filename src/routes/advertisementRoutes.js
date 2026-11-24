@@ -141,7 +141,56 @@ router.get('/', async (req, res) => {
 
 
 
-router.get('/home-ads', getHomeAds);
+router.get('/home-ads', async (req, res) => {
+  try {
+    const { pincode } = req.query;
+    const now = new Date();
+
+    // ✅ 1. Base Filter: Sirf Active aur valid date wale ads
+    const baseFilter = {
+      status: 'active',
+      isActive: true,
+      startDate: { $lte: now }, 
+      endDate: { $gte: now }    
+    };
+
+    if (pincode) {
+      baseFilter.pinCodes = { $in: [pincode] };
+    }
+
+    
+    const sellAds = await Advertisement.find({ ...baseFilter, adType: 'sell_property' })
+      .populate('property', 'title location')
+      .catch(() => []);
+
+    // ✅ 4. Rent Ads (Neeche ke liye)
+    const rentAds = await Advertisement.find({ ...baseFilter, adType: 'rent_property' })
+      .populate('property', 'title location')
+      .catch(() => []);
+
+    // ✅ 5. Upcoming Projects (Carousel ke liye)
+    const upcomingProjects = await Advertisement.find({ ...baseFilter, adType: 'upcoming_project' })
+      .populate('project', 'title location.city location.landmark')
+      .catch(() => []);
+
+    // ✅ 6. Delete hue projects/properties wale ads hatao
+    const validSellAds = sellAds.filter(ad => ad.property !== null);
+    const validRentAds = rentAds.filter(ad => ad.property !== null);
+    const validProjects = upcomingProjects.filter(ad => ad.project !== null);
+
+    res.json({
+      success: true,
+      data: {
+        sellAds: validSellAds,
+        rentAds: validRentAds,
+        upcomingProjects: validProjects
+      }
+    });
+  } catch (err) {
+    console.error("Home Ads Error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
   
 
 
