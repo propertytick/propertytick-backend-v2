@@ -1,4 +1,5 @@
 const Project = require('../models/Project');
+const Property = require('../models/Property');
 
 exports.getHomeAds = async (req, res) => {
   try {
@@ -41,5 +42,31 @@ exports.getHomeAds = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.createUpcomingProjectAd = async (req, res) => {
+  try {
+    const { projectId, pincodes, location } = req.body;
+    
+    const project = await Project.findByIdAndUpdate(
+      projectId,
+      {
+        adType: 'upcoming_project',
+        pincodes: pincodes,
+        location: location,
+        trialEndDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days free trial
+        status: 'active'
+      },
+      { new: true }
+    );
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    res.status(200).json({ success: true, data: project });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
